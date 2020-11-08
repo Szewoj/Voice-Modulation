@@ -25,7 +25,7 @@ int main(int argc, char const *argv[])
 					}
 					else if(generatorPid == 0){
 						char* argv[] = {NULL};
-						execv("bum", argv);
+						execv("generator", argv);
 						exit(0);
 					}
 					generator_on = true;
