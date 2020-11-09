@@ -1,0 +1,4 @@
+by summoner dzialal:
+
+gcc -c summoner.c -o summoner.o
+gcc summoner.o $(/usr/bin/python2.7-config --ldflags) -o summoner
