@@ -11,6 +11,7 @@ int getChoice();
 bool goodButton(int c);
 void closeGenerator(bool generator_on, pid_t generatorPid);
 void openGenerator(bool generator_on, pid_t* generatorPid);
+void createPlots();
 
 int main(int argc, char const *argv[])
 {
@@ -45,17 +46,8 @@ int main(int argc, char const *argv[])
 			case 2:
 				closeGenerator(generator_on, generatorPid);
 			break;
-			case 3:{
-				puts("launching plotter");
-				pid_t plotterPid = fork();
-				if(plotterPid == -1){
-					puts("process creation failure");
-					exit(1);
-				}else if(plotterPid == 0){
-					execlp("python", "python", "plotter.py", NULL);
-					exit(0);
-				}
-			}
+			case 3:
+				createPlots();
 			break;
 			case 4:
 				closeGenerator(generator_on, generatorPid);
@@ -100,22 +92,17 @@ void closeGenerator(bool generator_on, pid_t generatorPid){
 	}
 }
 
+void createPlots(){
+	puts("launching plotter");
+	pid_t plotterPid = fork();
+	if(plotterPid == -1){
+		puts("process creation failure");
+		exit(1);
+	}else if(plotterPid == 0){
+		execlp("python", "python", "plotter.py", NULL);
+		exit(0);
+	}
+}
+
 void openGenerator(bool generator_on, pid_t* generatorPid){
-	if(!generator_on){
-		*generatorPid = fork();
-		if(*generatorPid == -1){
-			puts("process creation failure");
-			exit(1);
-		}
-		else if(*generatorPid == 0){
-			char* argv[] = {NULL};
-			execv("generator", argv);
-			exit(0);
-		}
-		generator_on = true;
-		puts("generator launched");
-	}
-	else{
-		puts("generator already on");
-	}
 }
