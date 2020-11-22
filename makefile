@@ -19,7 +19,7 @@ $(ODIR)/summoner.o: summoner.c
 	$(C) -c summoner.c -o $(ODIR)/summoner.o
 
 generator: generator.c
-	$(C) generator.c -o $(ODIR)/generator
+	$(C) generator.c -o $(ODIR)/generator -lpthread 
 
 .PHONY: clean
 clean:

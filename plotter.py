@@ -1,9 +1,24 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
+import posix_ipc
+import signal
+
+sem = posix_ipc.Semaphore("/times", posix_ipc.O_CREAT, mode = posix_ipc.O_RDWR, initial_value = 1)
+
+locked = False;
+
+def termin(signum, frame):
+	if locked:
+		sem.close()
+	plt.close('all')
 
 if __name__ == "__main__":
 	print("commencing plot creation")
+	signal.signal(signal.SIGTERM, termin)
+
+	sem.acquire();
+	locked = True;
 	fp = open("build/times.txt", "r")
 	times = []
 	buf = ""
@@ -12,6 +27,9 @@ if __name__ == "__main__":
 		if not buf:
 			break
 		times.append(float(buf))
+	sem.release()
+	sem.close()
+	locked = False;
 
 	plt.figure(1)
 	n, bins, patches = plt.hist(x=times, bins=30, color='#0504aa', alpha=0.7, rwidth=0.4)

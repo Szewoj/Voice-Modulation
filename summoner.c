@@ -94,7 +94,7 @@ void openGenerator(bool* generator_on, pid_t* generator_pid){
 void closeGenerator(bool* generator_on, pid_t generator_pid){
 	if(*generator_on){
 		puts("generator closed");
-		kill(generator_pid, SIGKILL);
+		kill(generator_pid, SIGTERM);
 		*generator_on = false;
 	}
 	else{
@@ -123,7 +123,7 @@ void createPlots(bool* plotter_on, pid_t* plotter_pid){
 void closePlots(bool* plotter_on, pid_t plotter_pid){
 	if(*plotter_on){
 		puts("closing plots");
-		kill(plotter_pid, SIGKILL);
+		kill(plotter_pid, SIGTERM);
 		*plotter_on = false;
 	}
 	else{
