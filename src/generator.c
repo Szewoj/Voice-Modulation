@@ -37,6 +37,8 @@ int main(int argc, char const *argv[])
 
 
 	FILE* log;
+	mkdir("logs", O_CREAT);
+
 	char fname[3][15];
 	char semName[6];
 	int val;
