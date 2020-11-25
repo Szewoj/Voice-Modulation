@@ -6,26 +6,23 @@ ODIR=build
 
 all: capture playback generator summoner
 
-capture: capture.c
-	$(CC) capture.c -o $(ODIR)/capture $(CFLAGS)
+capture: src/capture.c
+	$(CC) src/capture.c -o $(ODIR)/capture $(CFLAGS)
 
-playback: playback.c
-	$(CC) playback.c -o $(ODIR)/playback $(CFLAGS)
+playback: src/playback.c
+	$(CC) src/playback.c -o $(ODIR)/playback $(CFLAGS)
 
-summoner: $(ODIR)/summoner.o
-	$(C) $(ODIR)/summoner.o $(/usr/bin/python2.7-config --ldflags) -o $(ODIR)/summoner
+summoner: src/summoner.c
+	$(C) src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7
 
-$(ODIR)/summoner.o: summoner.c
-	$(C) -c summoner.c -o $(ODIR)/summoner.o
-
-generator: generator.c
-	$(C) generator.c -o $(ODIR)/generator -lpthread 
+generator: src/generator.c
+	$(C) src/generator.c -o $(ODIR)/generator -lpthread 
 
 .PHONY: clean
 clean:
 	rm -f $(ODIR)/capture
 	rm -f $(ODIR)/playback
-	rm -f $(ODIR)/summoner.o
 	rm -f $(ODIR)/generator
 	rm -f $(ODIR)/summoner
+	rm -f $(ODIR)/*.txt
 	

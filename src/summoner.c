@@ -110,7 +110,7 @@ void createPlots(bool* plotter_on, pid_t* plotter_pid){
 			puts("process creation failure");
 			exit(1);
 		}else if(*plotter_pid == 0){
-			execlp("python", "python", "plotter.py", NULL);
+			execlp("python", "python", "scripts/plotter.py", NULL);
 			exit(0);
 		}
 		*plotter_on = true;
