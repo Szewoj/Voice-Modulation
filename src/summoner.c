@@ -71,9 +71,10 @@ void openGenerator(bool* generator_on, pid_t* generator_pid){
 			exit(1);
 		}
 		else if(*generator_pid == 0){
-			char* argvgen[] = {NULL, "1"};
-			snprintf(argvgen[1], 2, "%d", param);
-			printf("%s%s%s\n", argvgen[0], argvgen[1], argvgen[2]);
+			//char* argvgen[] = {NULL, "1"};
+			//snprintf(argvgen[1], 2, "%d", param);
+			//printf("%s%s%s\n", argvgen[0], argvgen[1], argvgen[2]);
+			char* argvgen[] = {NULL};
 			execv("build/generator", argvgen);
 			fprintf(stderr, "generator execution failed");
 			exit(errno);	//program dojdzie tu tylko przy bledzie

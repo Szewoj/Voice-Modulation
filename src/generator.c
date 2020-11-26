@@ -18,17 +18,14 @@ void term(){
 		if(val < 1){
 			sem_post(semarr[i]);	
 		}
-		//printf("semafor /log%d, wartosc %d", i, val);
-		//puts("");
+		printf("semafor /log%d, wartosc %d", i, val);
+		puts("");
 		sem_close(semarr[i]); //zamkniece semafora przy sigterm
 	}
 }
 
 int main(int argc, char const *argv[])
 {
-	puts("argumenty:\n");
-	printf("%s%s%s\n", argv[0], argv[1], argv[2]);
-	puts("ta da\n");
 	struct timeval t2, t1, dt;
 
 	struct sigaction action;	//przypisane term() do SIGTERM
@@ -37,9 +34,13 @@ int main(int argc, char const *argv[])
     sigaction(SIGTERM, &action, NULL);
 
 
-
+    argv[1] = "2";
 	FILE* log;
-	mkdir("logs", O_CREAT);
+	struct stat st = {0};
+	if (stat("/some/directory", &st) == -1) {
+    	mkdir("logs", O_RDWR);
+	}
+	
 
 	char fname[3][15];
 	char semName[6];
@@ -49,8 +50,8 @@ int main(int argc, char const *argv[])
 		snprintf(semName, 6, "/log%d", i);
 		semarr[i] = sem_open(semName, O_CREAT, O_RDWR, 1);
 		sem_getvalue(semarr[i], &val);
-		//printf("semafor %s, wartosc %d", semName, val);
-		//puts("");
+		printf("semafor %s, wartosc %d", semName, val);
+		puts("");
 
 		sem_wait(semarr[i]); //lock
 		snprintf(fname[i], 15, "logs/log%d.txt", i);
