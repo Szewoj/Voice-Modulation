@@ -13,10 +13,10 @@ playback: src/playback.c
 	$(CC) src/playback.c -o $(ODIR)/playback $(CFLAGS)
 
 summoner: src/summoner.c
-	$(C) src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7
+	$(C) -Wall src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7 -lpthread
 
 generator: src/generator.c
-	$(C) src/generator.c -o $(ODIR)/generator -lpthread 
+	$(C) -Wall src/generator.c -o $(ODIR)/generator -lpthread 
 
 .PHONY: clean
 clean:
