@@ -10,12 +10,10 @@
 #include<sys/stat.h>
 #include<fcntl.h>
 
-#define MENU_MESSAGE "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n"
-#define PARAM_TEXT "\nhow slow? (int from 1 to 3)\n"
-
 int getChoice(const char* text, int max);
 bool goodButton(int c, int max);
 void openGenerator(bool* generator_on, pid_t* generator_pid);
+void execGenerator(int param);
 void closeGenerator(bool* generator_on, pid_t generator_pid);
 void createPlots(bool* plotter_on, pid_t* plotter_pid);
 void closePlots(bool* plotter_on, pid_t plotter_pid);
@@ -28,6 +26,8 @@ int main(int argc, char const *argv[])
 	bool generator_on = false;
 	bool plotter_on = false;
 	int choice;
+	const char* MENU_MESSAGE = "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n";
+	
 	for(;;){
 		puts(MENU_MESSAGE);
 		choice = getChoice(MENU_MESSAGE, 5);
@@ -59,32 +59,36 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
-
-
 void openGenerator(bool* generator_on, pid_t* generator_pid){
 	if(!*generator_on){
+		const char* PARAM_TEXT = "\nhow slow? (int from 1 to 3)\n";
 		puts(PARAM_TEXT);
 		int param = getChoice(PARAM_TEXT, 3);
+
 		*generator_pid = fork();
 		if(*generator_pid == -1){
 			fprintf(stderr, "process creation failed");
 			exit(1);
 		}
 		else if(*generator_pid == 0){
-			//char* argvgen[] = {NULL, "1"};
-			//snprintf(argvgen[1], 2, "%d", param);
-			//printf("%s%s%s\n", argvgen[0], argvgen[1], argvgen[2]);
-			char* argvgen[] = {NULL};
-			execv("build/generator", argvgen);
-			fprintf(stderr, "generator execution failed");
-			exit(errno);	//program dojdzie tu tylko przy bledzie
+			execGenerator(param);
 		}
 		*generator_on = true;
 		puts("generator launched");
-		}
+	}
 	else{
 		puts("generator already on");
 	}
+}
+
+void execGenerator(int param){
+	char p[2];
+	snprintf(p, 2, "%d", param);
+	char* argvgen[] = {"build/generator", p, NULL};
+	//fprintf(stderr,"summoner: %s %s\n", argvgen[0], argvgen[1]);
+	execv("build/generator", argvgen);
+	fprintf(stderr, "generator execution failed");
+	exit(errno);
 }
 
 void closeGenerator(bool* generator_on, pid_t generator_pid){
@@ -134,7 +138,7 @@ int getChoice(const char* text, int max){
 		scanf("%d", &choice);
 		while((getchar()!='\n')){};
 		if(!goodButton(choice, max)){
-			puts("unnactepable input");
+			puts("unaccteptable input");
 			puts(text);
 		}
 	}while(!goodButton(choice, max));
