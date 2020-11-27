@@ -26,12 +26,10 @@ int main(int argc, char const *argv[])
 	bool generator_on = false;
 	bool plotter_on = false;
 	int choice;
-	const char* MENU_MESSAGE = "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n";
+	const char* MENU_TEXT = "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n";
 	
 	for(;;){
-		puts(MENU_MESSAGE);
-		choice = getChoice(MENU_MESSAGE, 5);
-
+		choice = getChoice(MENU_TEXT, 5);
 		switch(choice){
 			case 1:
 				openGenerator(&generator_on, &generator_pid);		
@@ -62,7 +60,6 @@ int main(int argc, char const *argv[])
 void openGenerator(bool* generator_on, pid_t* generator_pid){
 	if(!*generator_on){
 		const char* PARAM_TEXT = "\nhow slow? (int from 1 to 3)\n";
-		puts(PARAM_TEXT);
 		int param = getChoice(PARAM_TEXT, 3);
 
 		*generator_pid = fork();
@@ -84,9 +81,8 @@ void openGenerator(bool* generator_on, pid_t* generator_pid){
 void execGenerator(int param){
 	char p[2];
 	snprintf(p, 2, "%d", param);
-	char* argvgen[] = {"build/generator", p, NULL};
-	//fprintf(stderr,"summoner: %s %s\n", argvgen[0], argvgen[1]);
-	execv("build/generator", argvgen);
+	//fprintf(stderr,"summoner: %s %s\n", "build/generator", p);
+	execlp("build/generator", "build/generator", p, NULL);
 	fprintf(stderr, "generator execution failed");
 	exit(errno);
 }
@@ -133,6 +129,7 @@ void closePlots(bool* plotter_on, pid_t plotter_pid){
 }
 
 int getChoice(const char* text, int max){
+	puts(text);
 	int choice;
 	do{
 		scanf("%d", &choice);

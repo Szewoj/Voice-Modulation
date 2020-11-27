@@ -18,7 +18,7 @@ void term(){
 		if(val < 1){
 			sem_post(semarr[i]);	
 		}
-		//fprintf(stderr,"semafor /log%d, wartosc %d", i, val);
+		//fprintf(stderr,"semafor /log%d, wartosc %d\n", i, val);
 		sem_close(semarr[i]);
 	}
 }
@@ -45,7 +45,7 @@ int main(int argc, char const *argv[])
 		snprintf(semName, 6, "/log%d", i);
 		semarr[i] = sem_open(semName, O_CREAT, O_RDWR, 1);
 		sem_getvalue(semarr[i], &val);
-		//fprintf(stderr,"semafor %s, wartosc %d", semName, val);
+		//fprintf(stderr,"semafor %s, wartosc %d\n", semName, val);
 
 		sem_wait(semarr[i]);
 		snprintf(fname[i], 15, "logs/log%d.txt", i);
@@ -58,12 +58,15 @@ int main(int argc, char const *argv[])
 		sem_post(semarr[i]);
 	}
 	
+	//fprintf(stderr,"file init ok");
 	srand(time(NULL));
 	int rando = 0;
 	for(;;){
 		for(int i = 3; i>0; --i){
+			//fprintf(stderr,"in loop");
 			gettimeofday(&t1, NULL);
 			rando = (10000 + rand() % 30000)*strtol(argv[1], NULL, 10);
+			//fprintf(stderr,"rando =  %d", rando);
 			usleep(rando);
 			gettimeofday(&t2, NULL);
 			timersub(&t2, &t1, &dt);
