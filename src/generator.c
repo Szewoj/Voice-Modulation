@@ -16,7 +16,7 @@ void term(){
 	for(int i = 3; i>0; --i){
 		sem_getvalue(semarr[i], &val);
 		if(val < 1){
-			sem_post(semarr[i]);	
+			sem_post(semarr[i]);
 		}
 		//fprintf(stderr,"semafor /log%d, wartosc %d\n", i, val);
 		sem_close(semarr[i]);

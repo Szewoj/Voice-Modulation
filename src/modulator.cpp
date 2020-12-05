@@ -6,11 +6,13 @@
 #include <semaphore.h>
 #include <csignal>
 #include <fstream>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 using namespace std;
 
-sem_t log1_semaphore;
-sem_t log2_semaphore;
+sem_t* log1_semaphore;
+sem_t* log2_semaphore;
 
 unsigned long int diff;
 bool msg_ready = false;
@@ -42,10 +44,10 @@ int main()
 	// Log file initialisation:
 	fstream log_file;
 
-	log_file.open("logs/log1", fstream::out | fstream::in | fstream::trunc);
+	log_file.open("logs/log1.txt", fstream::out | fstream::in | fstream::trunc);
 	log_file.close();
 
-	log_file.open("logs/log1", fstream::out | fstream::in | fstream::trunc);
+	log_file.open("logs/log2.txt", fstream::out | fstream::in | fstream::trunc);
 	log_file.close();
 
 	/*************************************************************************************/
@@ -87,13 +89,13 @@ void log_handle()
 		{
 			sem_wait(log1_semaphore);
 
-			log_file.open("logs/log1", fstream::out | fstream::in );
+			log_file.open("logs/log1.txt", fstream::out | fstream::in | fstream::app);
 			
 			log_file << diff << '\n';
 
 			log_file.close();
 
-			sem_post(log_semaphore);
+			sem_post(log1_semaphore);
 
 			msg_ready = false;
 		}

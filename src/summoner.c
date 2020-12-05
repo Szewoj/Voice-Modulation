@@ -12,7 +12,7 @@
 
 int getChoice(const char* text, int max);
 bool goodButton(int c, int max);
-void openGenerator(bool* generator_on, pid_t* generator_pid);
+void openSystem(bool* generator_on, pid_t* generator_pid);
 void execGenerator(int param);
 void closeGenerator(bool* generator_on, pid_t generator_pid);
 void createPlots(bool* plotter_on, pid_t* plotter_pid);
@@ -32,7 +32,7 @@ int main(int argc, char const *argv[])
 		choice = getChoice(MENU_TEXT, 5);
 		switch(choice){
 			case 1:
-				openGenerator(&generator_on, &generator_pid);		
+				openSystem(&generator_on, &generator_pid);
 			break;
 			case 2:
 				closeGenerator(&generator_on, generator_pid);
@@ -57,7 +57,7 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
-void openGenerator(bool* generator_on, pid_t* generator_pid){
+void openSystem(bool* generator_on, pid_t* generator_pid){
 	if(!*generator_on){
 		const char* PARAM_TEXT = "\nhow slow? (int from 1 to 3)\n";
 		int param = getChoice(PARAM_TEXT, 3);
@@ -82,7 +82,7 @@ void execGenerator(int param){
 	char p[2];
 	snprintf(p, 2, "%d", param);
 	//fprintf(stderr,"summoner: %s %s\n", "build/generator", p);
-	execlp("build/generator", "build/generator", p, NULL);
+	execlp("build/modulator", "build/modulator", p, NULL);
 	fprintf(stderr, "generator execution failed");
 	exit(errno);
 }
