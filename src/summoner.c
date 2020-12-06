@@ -113,7 +113,7 @@ void runPlayback(pid_t* system_pid){
 		exit(errno);
 	}
 	else if(system_pid[2] == 0){
-		execlp("build/playback", "build/capture", NULL);
+		execlp("build/playback", "build/playback", NULL);
 		fprintf(stderr, "playback execution failed");
 		exit(errno);
 	}	
