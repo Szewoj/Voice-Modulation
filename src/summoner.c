@@ -9,21 +9,24 @@
 #include<semaphore.h>
 #include<sys/stat.h>
 #include<fcntl.h>
+#include<sys/wait.h>
 
+void openSystem(bool* system_on, pid_t* system_pid);
+void runCapture(pid_t* system_pid);
+void runModulator(pid_t* system_pid, int param);
+void runPlayback(pid_t* system_pid);
+void closeSystem(bool* system_on, pid_t* system_pid);
+void createPlots(bool* plotter_on, pid_t* plotter_pid_ptr);
+void closePlots(bool* plotter_on, pid_t plotter_pid);
 int getChoice(const char* text, int max);
 bool goodButton(int c, int max);
-void openSystem(bool* generator_on, pid_t* generator_pid);
-void execGenerator(int param);
-void closeGenerator(bool* generator_on, pid_t generator_pid);
-void createPlots(bool* plotter_on, pid_t* plotter_pid);
-void closePlots(bool* plotter_on, pid_t plotter_pid);
 void unlinkSemaphores();
 
 int main(int argc, char const *argv[])
 {
-	pid_t generator_pid = 0;
-	pid_t plotter_pid = 0;
-	bool generator_on = false;
+	pid_t system_pid[3];
+	pid_t plotter_pid;
+	bool system_on = false;
 	bool plotter_on = false;
 	int choice;
 	const char* MENU_TEXT = "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n";
@@ -32,10 +35,10 @@ int main(int argc, char const *argv[])
 		choice = getChoice(MENU_TEXT, 5);
 		switch(choice){
 			case 1:
-				openSystem(&generator_on, &generator_pid);
+				openSystem(&system_on, system_pid);
 			break;
 			case 2:
-				closeGenerator(&generator_on, generator_pid);
+				closeSystem(&system_on, system_pid);
 			break;
 			case 3:
 				createPlots(&plotter_on, &plotter_pid);
@@ -44,7 +47,7 @@ int main(int argc, char const *argv[])
 				closePlots(&plotter_on, plotter_pid);
 			break;
 			case 5:
-				closeGenerator(&generator_on, generator_pid);
+				closeSystem(&system_on, system_pid);
 				closePlots(&plotter_on, plotter_pid);
 				unlinkSemaphores();
 				puts("closing system");
@@ -57,55 +60,87 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
-void openSystem(bool* generator_on, pid_t* generator_pid){
-	if(!*generator_on){
-		const char* PARAM_TEXT = "\nhow slow? (int from 1 to 3)\n";
-		int param = getChoice(PARAM_TEXT, 3);
+void openSystem(bool* system_on, pid_t* system_pid){
+	if(!*system_on){
+		const char* PARAM_TEXT = "\n1 - modulation\n2 - no effects\n";
+		int param = getChoice(PARAM_TEXT, 2);
 
-		*generator_pid = fork();
-		if(*generator_pid == -1){
-			fprintf(stderr, "process creation failed");
-			exit(1);
-		}
-		else if(*generator_pid == 0){
-			execGenerator(param);
-		}
-		*generator_on = true;
-		puts("generator launched");
+		runCapture(system_pid);
+		runModulator(system_pid, param);
+		runPlayback(system_pid);
+
+		*system_on = true;
+		puts("system launched");
 	}
 	else{
-		puts("generator already on");
+		puts("system already on");
 	}
 }
 
-void execGenerator(int param){
-	char p[2];
-	snprintf(p, 2, "%d", param);
-	//fprintf(stderr,"summoner: %s %s\n", "build/generator", p);
-	execlp("build/modulator", "build/modulator", p, NULL);
-	fprintf(stderr, "generator execution failed");
-	exit(errno);
+void runCapture(pid_t* system_pid){
+	system_pid[0] = fork();
+	if(system_pid[0] == -1){
+		fprintf(stderr, "process creation failed");
+		exit(errno);
+	}
+	else if(system_pid[0] == 0){
+		execlp("build/capture", "build/capture", NULL);
+		fprintf(stderr, "capture execution failed");
+		exit(errno);
+	}	
 }
 
-void closeGenerator(bool* generator_on, pid_t generator_pid){
-	if(*generator_on){
-		puts("generator closed");
-		kill(generator_pid, SIGTERM);
-		*generator_on = false;
+void runModulator(pid_t* system_pid, int param){
+	system_pid[1] = fork();
+	if(system_pid[1] == -1){
+		fprintf(stderr, "process creation failed");
+		exit(errno);
+	}
+	else if(system_pid[1] == 0){
+		char p[2];
+		snprintf(p, 2, "%d", param);
+		//fprintf(stderr,"summoner: %s %s\n", "build/generator", p);
+		execlp("build/modulator", "build/modulator", p, NULL);
+		fprintf(stderr, "modulator execution failed");
+		exit(errno);
+	}
+}
+
+void runPlayback(pid_t* system_pid){
+	system_pid[2] = fork();
+	if(system_pid[2] == -1){
+		fprintf(stderr, "process creation failed");
+		exit(errno);
+	}
+	else if(system_pid[2] == 0){
+		execlp("build/playback", "build/capture", NULL);
+		fprintf(stderr, "playback execution failed");
+		exit(errno);
+	}	
+}
+
+void closeSystem(bool* system_on, pid_t system_pid[]){
+	if(*system_on){
+		for(int i = 2; i >= 0; --i){
+			kill(system_pid[i], SIGTERM);
+			wait(NULL);
+		}
+		puts("system closed");
+		*system_on = false;
 	}
 	else{
-		puts("no generator active");
+		puts("system already off");
 	}
 }
 
-void createPlots(bool* plotter_on, pid_t* plotter_pid){
+void createPlots(bool* plotter_on, pid_t* plotter_pid_ptr){
 	if(!*plotter_on){
 		puts("launching plotter");
-		*plotter_pid = fork();
-		if(*plotter_pid == -1){
+		*plotter_pid_ptr = fork();
+		if(*plotter_pid_ptr == -1){
 			fprintf(stderr, "process creation failed");
 			exit(1);
-		}else if(*plotter_pid == 0){
+		}else if(*plotter_pid_ptr == 0){
 			execlp("python", "python", "scripts/plotter.py", NULL);
 			fprintf(stderr, "plotter execution failed");
 			exit(errno);

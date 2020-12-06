@@ -121,6 +121,7 @@ void SIGTERM_handler(int signal_id)
 
 	sem_close(log2_semaphore);
 	
+	exit(EXIT_SUCCESS);
 }
 
 void log_request(int msg)
