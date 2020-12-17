@@ -1,94 +1,129 @@
-#define ALSA_PCM_NEW_HW_PARAMS_API
-#include <alsa/asoundlib.h>
-int main() 
-  {
-  long loopcount;
-  int errcheck;
-  int size;
-  snd_pcm_t *pcmhandle;
-  snd_pcm_hw_params_t *parameters;
-  unsigned int samplerate;
-  int ifequal;
-  snd_pcm_uframes_t frameamount;
-  char *periodbuffer;
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <semaphore.h>
+#include "portaudio.h"
 
-  errcheck = snd_pcm_open(&pcmhandle, "default",
-                    SND_PCM_STREAM_CAPTURE, 0);
-  if (errcheck < 0) 
-  {
-    fprintf(stderr,
-            "unable to open pcm device: %s\n",
-            snd_strerror(errcheck));
-    exit(1);
-  }
+#define SAMPLE_RATE  (44100)
+#define FRAMES_PER_BUFFER (1024)
+#define NUM_SECONDS     (2)
+#define NUM_CHANNELS    (1)
 
-  snd_pcm_hw_params_alloca(&parameters);
+#define PA_SAMPLE_TYPE  paInt16
+typedef short SAMPLE;
+#define SAMPLE_SILENCE  (0)
+#define PRINTF_S_FORMAT "%d"
 
-  snd_pcm_hw_params_any(pcmhandle, parameters);
+const char *semName = "semAC";
 
-  snd_pcm_hw_params_set_access(pcmhandle, parameters,
-                      SND_PCM_ACCESS_RW_INTERLEAVED);
+int main(void);
+int main(void)
+{
+    PaStreamParameters inputParam, outputParam;
+    PaStream *audioStream;
+    PaError exception;
+    SAMPLE *samplesRecorded;
+    
+    sem_t* sem_id;
 
-  snd_pcm_hw_params_set_format(pcmhandle, parameters,
-                              SND_PCM_FORMAT_S16_LE);
+    sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
+    sem_init(sem_id,1,1);
 
-  snd_pcm_hw_params_set_channels(pcmhandle, parameters, 2);
+    int i;
+    int amountOfFrames;
+    int amountOfSamples;
+    int amountOfBytes;
 
-  samplerate = 48000;
-  snd_pcm_hw_params_set_rate_near(pcmhandle, parameters,
-                                  &samplerate, &ifequal);
+    amountOfFrames = NUM_SECONDS * SAMPLE_RATE; 
+    amountOfSamples = amountOfFrames * NUM_CHANNELS;
+    amountOfBytes = amountOfSamples * sizeof(SAMPLE);
 
-  frameamount = 32;
-  snd_pcm_hw_params_set_period_size_near(pcmhandle,
-                              parameters, &frameamount, &ifequal);
+    exception = Pa_Initialize();
+    if( exception != paNoError ) 
+        goto error;
 
-  errcheck = snd_pcm_hw_params(pcmhandle, parameters);
-  if (errcheck < 0) 
-  {
-    fprintf(stderr,
-            "unable to set hw parameters: %s\n",
-            snd_strerror(errcheck));
-    exit(1);
-  }
-
-  snd_pcm_hw_params_get_period_size(parameters,
-                                      &frameamount, &ifequal);
-  size = frameamount * 4;
-  periodbuffer = (char *) malloc(size);
-
-  snd_pcm_hw_params_get_period_time(parameters,
-                                         &samplerate, &ifequal);
-  loopcount = 5000000 / samplerate;
-
-  while (loopcount > 0) 
-  {
-    loopcount--;
-    errcheck = snd_pcm_readi(pcmhandle, periodbuffer, frameamount);
-    if (errcheck == -EPIPE) 
+    inputParam.device = Pa_GetDefaultInputDevice(); 
+    if (inputParam.device == paNoDevice) 
     {
-      fprintf(stderr, "overrun occurred\n");
-      snd_pcm_prepare(pcmhandle);
-    } 
-    else if (errcheck < 0) 
-    {
-      fprintf(stderr,
-              "error from read: %s\n",
-              snd_strerror(errcheck));
-    } 
-    else if (errcheck != (int)frameamount) 
-    {
-      fprintf(stderr, "short read, read %d frames\n", errcheck);
+        printf("Error: No default input device.\n");
+        goto error;
     }
-    errcheck = write(1, periodbuffer, size);
 
-    if (errcheck != size)
-      fprintf(stderr,
-              "short write: wrote %d bytes\n", errcheck);
-  }
+    inputParam.channelCount = NUM_CHANNELS;
+    inputParam.sampleFormat = PA_SAMPLE_TYPE;
+    inputParam.suggestedLatency = Pa_GetDeviceInfo( inputParam.device )->defaultLowInputLatency;
+    inputParam.hostApiSpecificStreamInfo = NULL;
 
-  snd_pcm_drain(pcmhandle);
-  snd_pcm_close(pcmhandle);
-  free(periodbuffer);
+    exception = Pa_OpenStream(
+              &audioStream,
+              &inputParam,
+              NULL,          
+              SAMPLE_RATE,
+              FRAMES_PER_BUFFER,
+              paClipOff,    
+              NULL,
+              NULL );
 
-  return 0;
+    if( exception != paNoError ) 
+        goto error;
+
+        printf("capture loop\n");
+
+        samplesRecorded = (SAMPLE *) malloc( amountOfBytes );
+
+        if( samplesRecorded == NULL )
+        {
+            printf("Could not allocate capture array.\n");
+            exit(1);
+        }
+
+        for( i=0; i<amountOfSamples; i++ ) samplesRecorded[i] = 0;
+
+        if( audioStream )
+        {
+            exception = Pa_StartStream( audioStream );
+            if( exception != paNoError ) 
+                goto error;
+
+            printf("Now recording!\n"); 
+
+            exception = Pa_ReadStream( audioStream, samplesRecorded, amountOfFrames );
+            if( exception != paNoError ) 
+                goto error;
+    
+            exception = Pa_CloseStream( audioStream );
+            if( exception != paNoError ) 
+                goto error;
+        }
+
+        if(sem_wait(sem_id) < 0)
+            printf("[sem_wait] failed.\n");
+
+        FILE  *fid;
+        fid = fopen("recorded.raw", "wb");
+        if( fid != NULL )
+        {
+            fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
+            fclose( fid );
+
+            printf("Wrote data to 'recorded.raw'.\n");
+        }
+
+        if (sem_post(sem_id) < 0)
+            printf("[sem_post] failed.\n");
+
+        free( samplesRecorded );
+
+    
+    sem_unlink(semName);
+
+    Pa_Terminate();
+    return 0;
+
+error:
+    Pa_Terminate();
+    printf("An error occured while using the audio capture stream. Terminating...\n" );
+    printf("Error number: %d\n", exception );
+    printf("Error message: %s\n", Pa_GetErrorText( exception ) );
+    return -1;
 }
