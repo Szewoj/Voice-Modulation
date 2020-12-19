@@ -8,26 +8,59 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <queue>
+#include "SoundTouch.h"
 
+#define SAMPLE_RATE (44100)
+#define NUM_CHANNELS (1)
+
+#define TEMPO_CHANGE (0)
+#define PITCH_SEMITONES (10)
+#define RATE_CHANGE (0)
+
+#define BUFFER_SIZE (20)
+
+using namespace soundtouch;
 using namespace std;
+
 
 sem_t* log1_semaphore;
 sem_t* log2_semaphore;
 
-unsigned long int diff;
-bool msg_ready = false;
-short int receiver = 1;
+queue<chrono::high_resolution_clock::time_point> processing_start_times;
+queue<unsigned int> log1_time_diff;
+queue<unsigned int> log2_time_diff;
 
 
 void log_handle();
 void SIGTERM_handler(int signal_id);
 
-void log_request(int msg);
-
 int main()
 {	/*************************************************************************************/
 	// Main loop variables:	
-	int value_in;
+	int inSamples;
+	int outSamples;
+
+	int inSampleBuffer[BUFFER_SIZE] = {0};
+	int outSampleBuffer[BUFFER_SIZE] = {0};
+
+	unsigned int diff;
+	SoundTouch ST;
+
+
+	ST.setSampleRate(SAMPLE_RATE);
+	ST.setChannels(NUM_CHANNELS);
+
+	ST.setTempoChange(TEMPO_CHANGE);
+	ST.setPitchSemiTones(PITCH_SEMITONES);
+	ST.setRateChange(RATE_CHANGE);
+
+	ST.setSetting(SETTING_USE_QUICKSEEK, 1);
+	ST.setSetting(SETTING_USE_AA_FILTER, 0);
+
+	ST.setSetting(SETTING_SEQUENCE_MS, 40);
+	ST.setSetting(SETTING_SEEKWINDOW_MS, 15);
+	ST.setSetting(SETTING_OVERLAP_MS, 8);
 
 	/*************************************************************************************/
 	// Time measurement variables:
@@ -52,52 +85,86 @@ int main()
 
 	/*************************************************************************************/
 	// Logging thread launch:
-	thread logging_thread(log_handle);
+	thread logging_thread(log_handler);
 	/*************************************************************************************/
 	// Main processing loop:
 	while (EXIT_FAILURE) 
 	{
+		//data in
+		//ST.putSamples(sampleBuffer,inSamples);
 
-		cin >> value_in;
+
+
 		t_start = chrono::high_resolution_clock::now();
+		//for(int i = 0; i <= inSamples; ++i)
+		processing_start_times.push(t_start);
 
-		while (msg_ready);
+
+
+		do 
+		{
+			outSamples = ST.receiveSamples(inSampleBuffer, inSamples);
+
+			t_end = chrono::high_resolution_clock::now();
+
+			for(int i = 0; i <= outSamples; ++i){
+				time_span = processing_start_times.front() - t_end;
+				processing_start_times.pop();
+
+				log2_time_diff.push(time_span.count())
+			}
+
+			// write to output file
+
+		} while (outSamples != 0);
+
 		
-		t_end = chrono::high_resolution_clock::now();
-
-		time_span = t_start - t_end;
-
-		diff = time_span.count();
-		msg_ready = true;
 
 	}
 	/*************************************************************************************/
 	// If somehow loop broke, exit with error
-	return 1;
+	return EXIT_FAILURE;
 	/*************************************************************************************/
 }
 
 
-void log_handle()
+void log_handler()
 {
 	fstream log_file;
 
 	while (EXIT_FAILURE)
 	{
 
-		if (msg_ready)
+		if (!log1_time_diff.empty())
 		{
 			sem_wait(log1_semaphore);
-
 			log_file.open("logs/log1.txt", fstream::out | fstream::in | fstream::app);
-			
-			log_file << diff << '\n';
+
+			do {
+
+				log_file << log1_time_diff.front() << '\n';
+				log1_time_diff.pop();
+
+			} while(!log1_time_diff.empty())
 
 			log_file.close();
-
 			sem_post(log1_semaphore);
+		}
 
-			msg_ready = false;
+		if (!log2_time_diff.empty())
+		{
+			sem_wait(log2_semaphore);
+			log_file.open("logs/log2.txt", fstream::out | fstream::in | fstream::app);
+
+			do {
+
+				log_file << log2_time_diff.front() << '\n';
+				log2_time_diff.pop();
+
+			} while(!log2_time_diff.empty())
+
+			log_file.close();
+			sem_post(log2_semaphore);
 		}
 
 	}
@@ -122,9 +189,4 @@ void SIGTERM_handler(int signal_id)
 	sem_close(log2_semaphore);
 	
 	exit(EXIT_SUCCESS);
-}
-
-void log_request(int msg)
-{
-	
 }

@@ -22,7 +22,7 @@ generator: src/generator.c
 	$(C) -Wall src/generator.c -o $(ODIR)/generator -lpthread
 
 modulator: src/modulator.cpp
-	$(CPP) -Wall src/modulator.cpp -o $(ODIR)/modulator -lpthread
+	$(CPP) -Wall src/modulator.cpp -o $(ODIR)/modulator -lpthread -lSoundTouch
 
 .PHONY: clean
 clean:
