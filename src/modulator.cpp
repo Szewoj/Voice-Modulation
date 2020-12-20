@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <queue>
-#include "SoundTouch.h"
+#include "soundtouch/SoundTouch.h"
 
 #define SAMPLE_RATE (44100)
 #define NUM_CHANNELS (1)
@@ -32,7 +32,7 @@ queue<unsigned int> log1_time_diff;
 queue<unsigned int> log2_time_diff;
 
 
-void log_handle();
+void log_handler();
 void SIGTERM_handler(int signal_id);
 
 int main()
@@ -41,7 +41,7 @@ int main()
 	int inSamples;
 	int outSamples;
 
-	int inSampleBuffer[BUFFER_SIZE] = {0};
+	SAMPLETYPE inSampleBuffer[BUFFER_SIZE] = {0};
 	int outSampleBuffer[BUFFER_SIZE] = {0};
 
 	unsigned int diff;
@@ -111,7 +111,7 @@ int main()
 				time_span = processing_start_times.front() - t_end;
 				processing_start_times.pop();
 
-				log2_time_diff.push(time_span.count())
+				log2_time_diff.push(time_span.count());
 			}
 
 			// write to output file
@@ -145,7 +145,7 @@ void log_handler()
 				log_file << log1_time_diff.front() << '\n';
 				log1_time_diff.pop();
 
-			} while(!log1_time_diff.empty())
+			} while(!log1_time_diff.empty());
 
 			log_file.close();
 			sem_post(log1_semaphore);
@@ -161,7 +161,7 @@ void log_handler()
 				log_file << log2_time_diff.front() << '\n';
 				log2_time_diff.pop();
 
-			} while(!log2_time_diff.empty())
+			} while(!log2_time_diff.empty());
 
 			log_file.close();
 			sem_post(log2_semaphore);
