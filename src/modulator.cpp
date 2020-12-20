@@ -26,6 +26,8 @@ using namespace std;
 
 sem_t* log1_semaphore;
 sem_t* log2_semaphore;
+sem_t* samp_raw_semaphore;
+sem_t* samp_mod_semaphore;
 
 queue<chrono::high_resolution_clock::time_point> processing_start_times;
 queue<unsigned int> log1_time_diff;
@@ -41,8 +43,8 @@ int main()
 	int inSamples;
 	int outSamples;
 
-	SAMPLETYPE inSampleBuffer[BUFFER_SIZE] = {0};
-	int outSampleBuffer[BUFFER_SIZE] = {0};
+	short int inSampleBuffer[BUFFER_SIZE] = {0};
+	short int outSampleBuffer[BUFFER_SIZE] = {0};
 
 	unsigned int diff;
 	SoundTouch ST;
@@ -71,17 +73,33 @@ int main()
 	// Semaphore configuration
 	log1_semaphore = sem_open("/log1", O_CREAT, O_RDWR, 1);
 	log2_semaphore = sem_open("/log2", O_CREAT, O_RDWR, 1);
+	samp_raw_semaphore = sem_open("/samp_raw", O_CREAT, O_RDWR, 1);
+	samp_mod_semaphore = sem_open("/samp_mod", O_CREAT, O_RDWR, 1);
 
 	signal(SIGTERM, SIGTERM_handler);
 	/*************************************************************************************/
 	// Log file initialisation:
 	fstream log_file;
 
-	log_file.open("logs/log1.txt", fstream::out | fstream::in | fstream::trunc);
+	log_file.open("logs/log1.txt", fstream::out | fstream::trunc);
 	log_file.close();
 
-	log_file.open("logs/log2.txt", fstream::out | fstream::in | fstream::trunc);
+	log_file.open("logs/log2.txt", fstream::out | fstream::trunc);
 	log_file.close();
+
+	/*************************************************************************************/
+	// Modified samples file initialisation:
+	fstream samp_mod_file;
+
+	samp_mod_file.open("samp/mod.raw", fstream::out | fstream::trunc | ios::binary);
+	samp_mod_file.close();
+
+	/*************************************************************************************/
+	// Raw samples file variable:
+	ifstream samp_raw_file;
+
+	//samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
+	//samp_raw_file.close();
 
 	/*************************************************************************************/
 	// Logging thread launch:
@@ -90,35 +108,54 @@ int main()
 	// Main processing loop:
 	while (EXIT_FAILURE) 
 	{
-		//data in
-		//ST.putSamples(sampleBuffer,inSamples);
+		/*********************************************************************************/
+		// Read samples and put into processing:
 
+		sem_wait(samp_raw_semaphore);
+		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
 
+		do {
 
-		t_start = chrono::high_resolution_clock::now();
-		//for(int i = 0; i <= inSamples; ++i)
-		processing_start_times.push(t_start);
+			samp_raw_file.read(inSampleBuffer, BUFFER_SIZE*2);
+			inSamples = samp_raw_file.gcount() / 2;
 
+			ST.putSamples(inSampleBuffer, inSamples);
 
+			t_start = chrono::high_resolution_clock::now();
+			for(int i = 0; i < inSamples; ++i)
+				processing_start_times.push(t_start);
+
+		} while(inSamples !=0 );
+
+		samp_raw_file.close();
+		sem_post(samp_raw_semaphore);
+
+		/*********************************************************************************/
+		// Receive samples and write to output:
+
+		sem_wait(samp_mod_semaphore);
+		samp_mod_file.open("samp/mod.raw", fstream::out | ios::binary);
 
 		do 
 		{
-			outSamples = ST.receiveSamples(inSampleBuffer, inSamples);
+			outSamples = ST.receiveSamples(outSampleBuffer, outSamples);
 
 			t_end = chrono::high_resolution_clock::now();
 
-			for(int i = 0; i <= outSamples; ++i){
+			for(int i = 0; i < outSamples; ++i){
 				time_span = processing_start_times.front() - t_end;
 				processing_start_times.pop();
 
 				log2_time_diff.push(time_span.count());
 			}
 
-			// write to output file
+			samp_raw_file.write(outSampleBuffer, outSamples*2);
 
 		} while (outSamples != 0);
 
-		
+		samp_mod_file.close();
+		sem_post(samp_mod_semaphore);
+
 
 	}
 	/*************************************************************************************/
@@ -187,6 +224,21 @@ void SIGTERM_handler(int signal_id)
 		sem_post(log2_semaphore);
 
 	sem_close(log2_semaphore);
+
+
+	sem_getvalue(samp_raw_semaphore_semaphore, &tmp);
+	if(!tmp)
+		sem_post(samp_raw_semaphore_semaphore);
+
+	sem_close(samp_raw_semaphore_semaphore);
+
+
+	sem_getvalue(samp_mod_semaphore, &tmp);
+	if(!tmp)
+		sem_post(samp_mod_semaphore);
+
+	sem_close(samp_mod_semaphore);
+
 	
 	exit(EXIT_SUCCESS);
 }
