@@ -134,7 +134,7 @@ int main()
 		// Receive samples and write to output:
 
 		sem_wait(samp_mod_semaphore);
-		samp_mod_file.open("samp/mod.raw", fstream::out | ios::binary);
+		samp_mod_file.open("samp/mod.raw", fstream::out | fstream::app | ios::binary);
 
 		do 
 		{
