@@ -84,7 +84,7 @@ void runCapture(pid_t* system_pid){
 		exit(errno);
 	}
 	else if(system_pid[0] == 0){
-		execlp("build/capture", "build/capture", NULL);
+		execlp("build/capture", "capture", NULL);
 		fprintf(stderr, "capture execution failed");
 		exit(errno);
 	}	
@@ -99,8 +99,7 @@ void runModulator(pid_t* system_pid, int param){
 	else if(system_pid[1] == 0){
 		char p[2];
 		snprintf(p, 2, "%d", param);
-		//fprintf(stderr,"summoner: %s %s\n", "build/generator", p);
-		execlp("build/modulator", "build/modulator", p, NULL);
+		execlp("build/modulator", "modulator", p, NULL);
 		fprintf(stderr, "modulator execution failed");
 		exit(errno);
 	}
@@ -113,7 +112,7 @@ void runPlayback(pid_t* system_pid){
 		exit(errno);
 	}
 	else if(system_pid[2] == 0){
-		execlp("build/playback", "build/playback", NULL);
+		execlp("build/playback", "playback", NULL);
 		fprintf(stderr, "playback execution failed");
 		exit(errno);
 	}	
