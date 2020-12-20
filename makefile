@@ -10,10 +10,10 @@ ODIR=build
 all: capture playback generator summoner modulator
 
 capture: src/capture.c
-	$(CPP) src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
+	$(C) src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
 
 playback: src/playback.c
-	$(CPP) src/playback.c $(inc) -o $(ODIR)/playback $(CFLAGS) $(lib)
+	$(C) src/playback.c $(inc) -o $(ODIR)/playback $(CFLAGS) $(lib)
 
 summoner: src/summoner.c
 	$(C) -Wall src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7 -lpthread
