@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 import matplotlib.pyplot as plt
 import posix_ipc

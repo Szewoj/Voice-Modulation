@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<signal.h>
-#include<python2.7/Python.h>
+#include<python3.8/Python.h>
 #include<string.h>
 #include<semaphore.h>
 #include<sys/stat.h>
@@ -140,7 +140,7 @@ void createPlots(bool* plotter_on, pid_t* plotter_pid_ptr){
 			fprintf(stderr, "process creation failed");
 			exit(1);
 		}else if(*plotter_pid_ptr == 0){
-			execlp("python", "python", "scripts/plotter.py", NULL);
+			execlp("python3", "python", "scripts/plotter.py", NULL);
 			fprintf(stderr, "plotter execution failed");
 			exit(errno);
 		}
