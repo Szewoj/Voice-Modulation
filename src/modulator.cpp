@@ -67,6 +67,7 @@ int main()
 	samp_mod_semaphore = sem_open("/samp_mod", O_CREAT, O_RDWR, 1);
 
 	signal(SIGTERM, SIGTERM_handler);
+	signal(SIGINT, SIGTERM_handler);
 	/*************************************************************************************/
 	// Log file initialisation:
 	fstream log_file;
@@ -98,11 +99,12 @@ int main()
 	// Main processing loop:
 	while (true) 
 	{
-
-
 		sem_wait(samp_raw_semaphore);
 		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
-
+		if(!samp_raw_file){
+			sem_post(samp_raw_semaphore);
+			continue;
+		}
 		samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
 		inSamples = samp_raw_file.gcount() / 2;
 
@@ -113,7 +115,7 @@ int main()
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
-
+		
 		processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
 
 
@@ -192,6 +194,8 @@ void FFT(float* buffer, int frame_size, int direction)
 
 void processSamples(int semitones, int numSamples, int frame_size, int osamp, float sampleRate, short int *indata, short int *outdata)
 {
+	if(!numSamples)
+		return;
 	static float inputFIFO[MAX_FRAME_LENGTH];
 	static float outputFIFO[MAX_FRAME_LENGTH];
 	static float fftWorkspace[2*MAX_FRAME_LENGTH];
