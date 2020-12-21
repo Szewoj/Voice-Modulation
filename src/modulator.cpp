@@ -113,7 +113,7 @@ int main()
 			continue;
 		}
 
-		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in | fstream::trunc);
+		samp_raw_file.open("samp/raw.raw", ios::binary | ios::out | fstream::trunc);
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
@@ -124,7 +124,7 @@ int main()
 
 
 		sem_wait(samp_mod_semaphore);
-		samp_mod_file.open("samp/mod.raw", fstream::out | fstream::app | ios::binary);
+		samp_mod_file.open("samp/mod.raw", fstream::out | ios::binary);
 		if(!samp_mod_file){
 			sem_post(samp_mod_semaphore);
 			continue;
