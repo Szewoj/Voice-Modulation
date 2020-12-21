@@ -17,6 +17,7 @@ typedef short SAMPLE;
 #define PRINTF_S_FORMAT "%d"
 
 const char *semName = "/samp_mod";
+sem_t* log3_semaphore;
 sem_t* sem_id;
 FILE  *fid;
 
@@ -30,6 +31,8 @@ int main(void)
     PaError exception;
     SAMPLE *samplesRecorded;
 
+    struct timeval sendTime, receiveTime;
+
     struct sigaction action;
     memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = SIGTERM_handler;
@@ -40,9 +43,8 @@ int main(void)
     action2.sa_handler = SIGTERM_handler;
     sigaction(SIGINT, &action2, NULL);
 
-    sem_t* sem_id;
-
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
+    log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
     int i;
     float amountOfFrames;
@@ -90,7 +92,8 @@ int main(void)
         fid = fopen("samp/mod.raw", "rb");
         if( fid != NULL )
         {        
-            int error = fread( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
+            int error = fread(&sendTime, sizeof(struct timeval),1,fid);
+            error = fread( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
             printf("Read data from 'samp/mod.raw'.\n");
         }
@@ -98,6 +101,24 @@ int main(void)
         if (sem_post(sem_id) < 0)
             printf("[sem_post] failed.\n");
 
+        gettimeofday(&receiveTime, NULL);
+
+        if(sem_wait(log3_semaphore) < 0)
+            printf("[sem_wait] failed.\n");
+
+        fid = fopen("logs/log3.txt", "a");
+
+        if( fid != NULL )
+        {       
+            unsigned int time = (receiveTime.tv_sec - sendTime.tv_sec) * 1000000 + (receiveTime.tv_usec - sendTime.tv_usec);
+            fprintf(fid, "%d\n", time);
+            //fwrite( &time, sizeof(unsigned int), 1, fid);
+            fclose( fid );
+            printf("write data from 'logs/log3.txt'.\n");
+        }
+
+        if (sem_post(log3_semaphore) < 0)
+            printf("[sem_post] failed.\n");
         printf("Begin playback.\n");
 
         exception = Pa_OpenStream(
