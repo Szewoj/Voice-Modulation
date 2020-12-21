@@ -57,6 +57,7 @@ int main()
 	/*************************************************************************************/
 	// Time measurement variables:
 	struct timeval sendTime, receiveTime;
+	struct timeval postTime;
 	chrono::steady_clock::time_point t_start;
 	chrono::steady_clock::time_point t_end;
 	/*************************************************************************************/
@@ -133,7 +134,9 @@ int main()
 			sem_post(samp_mod_semaphore);
 			continue;
 		}
-		
+
+		gettimeofday(&postTime, NULL);
+		samp_mod_file.write((char*)&postTime, sizeof(struct timeval));
 		samp_mod_file.write((char*)inSampleBuffer, inSamples*2);
 
 		samp_mod_file.close();
