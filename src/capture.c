@@ -8,7 +8,7 @@
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
-#define NUM_SECONDS     (0,02)
+#define NUM_MILISECONDS     (20)
 #define NUM_CHANNELS    (1)
 
 #define PA_SAMPLE_TYPE  paInt16
@@ -37,11 +37,11 @@ int main(void)
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
 
     int i;
-    int amountOfFrames;
+    float amountOfFrames;
     int amountOfSamples;
     int amountOfBytes;
 
-    amountOfFrames = NUM_SECONDS * SAMPLE_RATE; 
+    amountOfFrames = NUM_MILISECONDS * SAMPLE_RATE/1000;
     amountOfSamples = amountOfFrames * NUM_CHANNELS;
     amountOfBytes = amountOfSamples * sizeof(SAMPLE);
 
