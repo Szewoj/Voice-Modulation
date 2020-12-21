@@ -18,7 +18,6 @@
 #define BUFFER_SIZE (2048)
 #define MAX_FRAME_LENGTH (1024)
 
-#define SEQUENCE_MS (40)
 #define FRAME_MS (20)
 #define OVERLAP_MS (1)
 
@@ -50,7 +49,6 @@ int main(int argc, char const *argv[])
 	short int inSampleBuffer[BUFFER_SIZE] = {0};
 	short int outSampleBuffer[BUFFER_SIZE] = {0};
 
-	//int seq = SAMPLE_RATE * SEQUENCE_MS /1000;
 	int sframe = SAMPLE_RATE * FRAME_MS /1000;
 	int overlap = SAMPLE_RATE * OVERLAP_MS /1000;
 
