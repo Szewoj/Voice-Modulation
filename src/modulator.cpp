@@ -1,7 +1,5 @@
 ﻿#include <iostream>
 #include <thread>
-#include <ctime>
-#include <chrono>
 #include <semaphore.h>
 #include <csignal>
 #include <fstream>
@@ -58,8 +56,7 @@ int main()
 	// Time measurement variables:
 	struct timeval sendTime, receiveTime;
 	struct timeval postTime;
-	chrono::steady_clock::time_point t_start;
-	chrono::steady_clock::time_point t_end;
+	struct timeval startTime, endTime;
 	/*************************************************************************************/
 	// Semaphore configuration
 	log1_semaphore = sem_open("/log1", O_CREAT, O_RDWR, 1);
@@ -122,10 +119,10 @@ int main()
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
-		t_start = chrono::steady_clock::now();
+		gettimeofday(&startTime, NULL);
 		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
-		t_end = chrono::steady_clock::now();
-		log2_time_diff.push(chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count());
+		gettimeofday(&endTime, NULL);;
+		log2_time_diff.push((endTime.tv_sec - startTime.tv_sec) * 1000000 + endTime.tv_usec - startTime.tv_usec);
 
 
 		sem_wait(samp_mod_semaphore);
