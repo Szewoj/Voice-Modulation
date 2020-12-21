@@ -6,9 +6,9 @@
 #include <semaphore.h>
 #include "portaudio.h"
 
-#define SAMPLE_RATE  (44100)
+#define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
-#define NUM_SECONDS     (1)
+#define NUM_SECONDS     (0,02)
 #define NUM_CHANNELS    (1)
 
 #define PA_SAMPLE_TYPE  paInt16
@@ -143,6 +143,7 @@ int main(void)
 
 error:
     Pa_Terminate();
+    sem_close(sem_id);
     sem_unlink(semName);
     free( samplesRecorded );
     printf("An error occured while using the audio playback stream. Terminating...\n" );

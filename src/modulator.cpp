@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstring>
 
-#define SAMPLE_RATE (44100)
+#define SAMPLE_RATE (20000)
 #define NUM_CHANNELS (1)
 
 #define PITCH_SEMITONES (10)
@@ -111,7 +111,7 @@ int main()
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
-		
+		printf("modulator loop.");
 		processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
 
 
