@@ -20,8 +20,8 @@
 #define MAX_FRAME_LENGTH (1024)
 
 #define SEQUENCE_MS (40)
-#define FRAME_MS (15)
-#define OVERLAP_MS (8)
+#define FRAME_MS (20)
+#define OVERLAP_MS (1)
 
 using namespace std;
 
@@ -55,9 +55,8 @@ int main()
 
 	/*************************************************************************************/
 	// Time measurement variables:
-	chrono::high_resolution_clock::time_point t_start;
-	chrono::high_resolution_clock::time_point t_end;
-	chrono::duration<double, std::milli> time_span;
+	chrono::steady_clock::time_point t_start;
+	chrono::steady_clock::time_point t_end;
 	/*************************************************************************************/
 	// Semaphore configuration
 	log1_semaphore = sem_open("/log1", O_CREAT, O_RDWR, 1);
@@ -107,7 +106,7 @@ int main()
 		samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
 		inSamples = samp_raw_file.gcount() / 2;
 
-		t_start = chrono::high_resolution_clock::now();
+		t_start = chrono::steady_clock::now();
 
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
@@ -119,10 +118,10 @@ int main()
 		sem_wait(samp_mod_semaphore);
 		samp_mod_file.open("samp/mod.raw", fstream::out | fstream::app | ios::binary);
 
-		t_end = chrono::high_resolution_clock::now();
+		t_end = chrono::steady_clock::now();
 
 		
-		log2_time_diff.push(chrono::duration_cast<chrono::nanoseconds>(t_start - t_end).count());
+		log2_time_diff.push(chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count());
 		
 
 		samp_mod_file.write((char*)outSampleBuffer, inSamples*2);

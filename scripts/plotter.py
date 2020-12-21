@@ -41,7 +41,6 @@ if __name__ == "__main__":
 				break
 			timeVec.append(long(buf))
 		times.append(timeVec)
-		times = times/10**9
 		sem[i].release()
 		sem[i].close()
 
