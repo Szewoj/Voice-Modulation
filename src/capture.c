@@ -5,6 +5,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include "portaudio.h"
+#include <sys/time.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
@@ -28,6 +29,7 @@ int main(void)
     PaStream *audioStream;
     PaError exception;
     SAMPLE *samplesRecorded;
+    struct timeval start;
     
     struct sigaction action;
     memset(&action, 0, sizeof(struct sigaction));
@@ -117,6 +119,8 @@ int main(void)
         fid = fopen("samp/raw.raw", "wb");
         if( fid != NULL )
         {
+            gettimeofday(&start, NULL);
+            fwrite( start, sizeof(struct timeval), 1, fid);
             fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
 

@@ -107,12 +107,13 @@ int main()
 		inSamples = samp_raw_file.gcount() / 2;
 		samp_raw_file.close();
 
-		log1_time_diff.push(inSamples);
+		
 		if(!inSamples){
 			sem_post(samp_raw_semaphore);
 			continue;
 		}
-
+		log1_time_diff.push(inSamples);
+		
 		samp_raw_file.open("samp/raw.raw", ios::binary | ios::out | fstream::trunc);
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
