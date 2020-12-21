@@ -16,7 +16,7 @@ typedef short SAMPLE;
 #define SAMPLE_SILENCE  (0)
 #define PRINTF_S_FORMAT "%d"
 
-const char *semName = "semAC";
+const char *semName = "/samp_raw";
 sem_t* sem_id;
 
 int main(void);
@@ -32,7 +32,7 @@ int main(void)
     struct sigaction action;
     memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = SIGTERM_handler;
-    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGTERM, &action, NULL);
 
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
 
@@ -114,13 +114,13 @@ int main(void)
             printf("[sem_wait] failed.\n");
 
         FILE  *fid;
-        fid = fopen("recorded.raw", "wb");
+        fid = fopen("samp/raw.raw", "wb");
         if( fid != NULL )
         {
             fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
 
-            printf("Wrote data to 'recorded.raw'.\n");
+            printf("Wrote data to 'samp/raw.raw'.\n");
         }
 
         if (sem_post(sem_id) < 0)

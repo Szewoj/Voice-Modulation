@@ -16,7 +16,7 @@ typedef short SAMPLE;
 #define SAMPLE_SILENCE  (0)
 #define PRINTF_S_FORMAT "%d"
 
-const char *semName = "semAC";
+const char *semName = "/samp_mod";
 sem_t* sem_id;
 FILE  *fid;
 
@@ -87,12 +87,12 @@ int main(void)
         if(sem_wait(sem_id) < 0)
             printf("[sem_wait] failed.\n");
 
-        fid = fopen("recorded.raw", "rb");
+        fid = fopen("samp/mod.raw", "rb");
         if( fid != NULL )
         {        
             int error = fread( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
-            printf("Read data from 'recorded.raw'.\n");
+            printf("Read data from 'samp/mod.raw'.\n");
         }
 
         if (sem_post(sem_id) < 0)

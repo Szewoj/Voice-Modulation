@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <queue>
-#include "soundtouch/SoundTouch.h"
+#include <soundtouch/SoundTouch.h>
 
 #define SAMPLE_RATE (44100)
 #define NUM_CHANNELS (1)
@@ -46,9 +46,7 @@ int main()
 	short int inSampleBuffer[BUFFER_SIZE] = {0};
 	short int outSampleBuffer[BUFFER_SIZE] = {0};
 
-	unsigned int diff;
 	SoundTouch ST;
-
 
 	ST.setSampleRate(SAMPLE_RATE);
 	ST.setChannels(NUM_CHANNELS);
@@ -116,7 +114,7 @@ int main()
 
 		do {
 
-			samp_raw_file.read(inSampleBuffer, BUFFER_SIZE*2);
+			samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
 			inSamples = samp_raw_file.gcount() / 2;
 
 			ST.putSamples(inSampleBuffer, inSamples);
@@ -149,7 +147,7 @@ int main()
 				log2_time_diff.push(time_span.count());
 			}
 
-			samp_raw_file.write(outSampleBuffer, outSamples*2);
+			samp_mod_file.write((char*)outSampleBuffer, outSamples*2);
 
 		} while (outSamples != 0);
 
@@ -226,11 +224,11 @@ void SIGTERM_handler(int signal_id)
 	sem_close(log2_semaphore);
 
 
-	sem_getvalue(samp_raw_semaphore_semaphore, &tmp);
+	sem_getvalue(samp_raw_semaphore, &tmp);
 	if(!tmp)
-		sem_post(samp_raw_semaphore_semaphore);
+		sem_post(samp_raw_semaphore);
 
-	sem_close(samp_raw_semaphore_semaphore);
+	sem_close(samp_raw_semaphore);
 
 
 	sem_getvalue(samp_mod_semaphore, &tmp);

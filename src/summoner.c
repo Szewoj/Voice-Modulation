@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<signal.h>
-#include<python2.7/Python.h>
+#include<Python.h>
 #include<string.h>
 #include<semaphore.h>
 #include<sys/stat.h>
