@@ -31,7 +31,6 @@ sem_t* log2_semaphore;
 sem_t* samp_raw_semaphore;
 sem_t* samp_mod_semaphore;
 
-queue<chrono::high_resolution_clock::time_point> processing_start_times;
 queue<unsigned int> log1_time_diff;
 queue<unsigned int> log2_time_diff;
 
@@ -109,8 +108,6 @@ int main()
 		inSamples = samp_raw_file.gcount() / 2;
 
 		t_start = chrono::high_resolution_clock::now();
-		for(int i = 0; i < inSamples; ++i)
-			processing_start_times.push(t_start);
 
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
@@ -124,12 +121,10 @@ int main()
 
 		t_end = chrono::high_resolution_clock::now();
 
-		for(int i = 0; i < inSamples; ++i){
-			time_span = processing_start_times.front() - t_end;
-			processing_start_times.pop();
-
-			log2_time_diff.push(time_span.count());
-		}
+		
+		time_span = t_start - t_end;
+		log2_time_diff.push(time_span.count());
+		
 
 		samp_mod_file.write((char*)outSampleBuffer, inSamples*2);
 
