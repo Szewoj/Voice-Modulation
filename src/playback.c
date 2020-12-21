@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include "portaudio.h"
 
@@ -74,9 +75,10 @@ int main(void)
 
     while(1)
     {
-        printf("playback loop\n");
+        //printf("playback loop\n");
 
         samplesRecorded = (SAMPLE *) malloc( amountOfBytes );
+        int error = 0;
 
         if( samplesRecorded == NULL )
         {
@@ -92,15 +94,22 @@ int main(void)
         fid = fopen("samp/mod.raw", "rb");
         if( fid != NULL )
         {        
-            int error = fread(&sendTime, sizeof(struct timeval),1,fid);
+            error = fread(&sendTime, sizeof(struct timeval),1,fid);
             error = fread( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
+            if(error)
+                {
+                    fclose(fid);
+                    fid = fopen("samp/mod.raw", "w");
+                    printf("Read data from 'samp/mod.raw'.\n");
+                }
             fclose( fid );
-            printf("Read data from 'samp/mod.raw'.\n");
         }
 
         if (sem_post(sem_id) < 0)
             printf("[sem_post] failed.\n");
 
+        if(error)
+        {
         gettimeofday(&receiveTime, NULL);
 
         if(sem_wait(log3_semaphore) < 0)
@@ -114,12 +123,12 @@ int main(void)
             fprintf(fid, "%d\n", time);
             //fwrite( &time, sizeof(unsigned int), 1, fid);
             fclose( fid );
-            printf("write data from 'logs/log3.txt'.\n");
+            printf("write data to 'logs/log3.txt'.\n");
         }
 
         if (sem_post(log3_semaphore) < 0)
             printf("[sem_post] failed.\n");
-        printf("Begin playback.\n");
+        //printf("Begin playback.\n");
 
         exception = Pa_OpenStream(
               &audioStream,
@@ -147,13 +156,13 @@ int main(void)
             exception = Pa_StopStream( audioStream );
             if( exception != paNoError ) 
                 goto error;
-            printf("Done.\n");
+            //printf("Done.\n");
 
             exception = Pa_CloseStream( audioStream );
             if( exception != paNoError ) 
                 goto error;
         }
-
+        }
         free( samplesRecorded );
     }
         

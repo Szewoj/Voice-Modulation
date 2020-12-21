@@ -66,7 +66,7 @@ int main(void)
 
     while(1)
     {
-        printf("capture loop\n");
+        //printf("capture loop\n");
 
         samplesRecorded = (SAMPLE *) malloc( amountOfBytes );
 
@@ -97,7 +97,7 @@ int main(void)
             if( exception != paNoError ) 
                 goto error;
 
-            printf("Now recording!\n"); 
+            //printf("Now recording!\n"); 
 
             exception = Pa_ReadStream( audioStream, samplesRecorded, amountOfFrames );
             if( exception != paNoError ) 
@@ -124,7 +124,7 @@ int main(void)
             fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
 
-            printf("Wrote data to 'samp/raw.raw'.\n");
+            //printf("Wrote data to 'samp/raw.raw'.\n");
         }
 
         if (sem_post(sem_id) < 0)
