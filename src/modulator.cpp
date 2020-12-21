@@ -36,7 +36,7 @@ queue<unsigned int> log2_time_diff;
 
 
 void FFT(float* buffer, int frame_size, int direction); // direction: -1: FFT, 1: IFFT
-void processSamples(int semitones, int numSamples, int frame_size, int osamp, float sampleRate, short int *indata, short int *outdata);
+void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata);
 
 void log_handler();
 void SIGTERM_handler(int signal_id);
@@ -85,7 +85,7 @@ int main()
 
 	/*************************************************************************************/
 	// Raw samples file variable:
-	ifstream samp_raw_file;
+	fstream samp_raw_file;
 
 	//samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
 	//samp_raw_file.close();
@@ -105,20 +105,21 @@ int main()
 		}
 		samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
 		inSamples = samp_raw_file.gcount() / 2;
+		samp_raw_file.close();
 
-		t_start = chrono::steady_clock::now();
+		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in | fstream::trunc);
 
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
-		printf("modulator loop.");
+
+		t_start = chrono::steady_clock::now();
 		processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
+		t_end = chrono::steady_clock::now();
 
 
 		sem_wait(samp_mod_semaphore);
 		samp_mod_file.open("samp/mod.raw", fstream::out | fstream::app | ios::binary);
-
-		t_end = chrono::steady_clock::now();
 
 		
 		log2_time_diff.push(chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count());
@@ -137,7 +138,7 @@ int main()
 	/*************************************************************************************/
 }
 
-void FFT(float* buffer, int frame_size, int direction)
+void FFT(float* buffer, long int frame_size, long int direction)
 {
 	float wr, wi, arg, *p1, *p2, temp;
 	float tr, ti, ur, ui, *p1r, *p1i, *p2r, *p2i;
@@ -185,7 +186,7 @@ void FFT(float* buffer, int frame_size, int direction)
 
 }
 
-void processSamples(int semitones, int numSamples, int frame_size, int osamp, float sampleRate, short int *indata, short int *outdata)
+void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata)
 {
 	if(!numSamples)
 		return;
@@ -201,12 +202,12 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 	static float synthesisedMagn[MAX_FRAME_LENGTH];
 
 	static bool init = false;
-	static int rover = 0;
+	static long int rover = 0;
 
 	double magn, phase, tmp, window, real, imag;
 	double freqPerBin, expectedFrequency;
 
-	int qpd, index, inputLatency, stepSize, frame_size_2;
+	long int qpd, index, inputLatency, stepSize, frame_size_2;
 
 	float psFactor = pow(2.0, semitones/12.0);
 
@@ -230,7 +231,7 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 		init = true;
 	}
 
-	for (int i = 0; i < numSamples; ++i){
+	for (long int i = 0; i < numSamples; ++i){
 
 		inputFIFO[rover] = indata[i];
 		outdata[i] = outputFIFO[rover-inputLatency];
@@ -239,7 +240,7 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 		if (rover >= frame_size) {
 			rover = inputLatency;
 
-			for (int k = 0; k < frame_size; ++k) {
+			for (long int k = 0; k < frame_size; ++k) {
 				window = -0.5*cos(2.0*M_PI*(double)k/(double)frame_size)+0.5;
 				fftWorkspace[2*k] = inputFIFO[k] * window;
 				fftWorkspace[2*k+1] = 0.0;
@@ -248,7 +249,7 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 			// Analise:
 			FFT(fftWorkspace, frame_size, -1);
 
-			for (int k = 0; k <= frame_size_2; ++k) {
+			for (long int k = 0; k <= frame_size_2; ++k) {
 
 				
 				real = fftWorkspace[2*k];
@@ -283,7 +284,7 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 			// Process:
 			memset(synthesisedMagn, 0, frame_size*sizeof(float));
 			memset(synthesisedFreq, 0, frame_size*sizeof(float));
-			for (int k = 0; k <= frame_size_2; ++k) { 
+			for (long int k = 0; k <= frame_size_2; ++k) { 
 				index = k*psFactor;
 				if (index <= frame_size_2) { 
 					synthesisedMagn[index] += analisedMagn[k]; 
@@ -292,7 +293,7 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 			}
 
 			// Synthesise:
-			for (int k = 0; k <= frame_size_2; ++k) {
+			for (long int k = 0; k <= frame_size_2; ++k) {
 
 				magn = synthesisedMagn[k];
 				tmp = synthesisedFreq[k];
@@ -312,20 +313,20 @@ void processSamples(int semitones, int numSamples, int frame_size, int osamp, fl
 				fftWorkspace[2*k+1] = magn*sin(phase);
 			} 
 
-			for (int k = frame_size+2; k < 2*frame_size; ++k) fftWorkspace[k] = 0.0;
+			for (long int k = frame_size+2; k < 2*frame_size; ++k) fftWorkspace[k] = 0.0;
 
 			FFT(fftWorkspace, frame_size, 1);
  
-			for(int k=0; k < frame_size; ++k) {
+			for(long int k=0; k < frame_size; ++k) {
 				window = -0.5*cos(2.0*M_PI*(double)k/(double)frame_size)+0.5;
 				outputAccumulator[k] += 2.0*window*fftWorkspace[2*k]/(frame_size_2*osamp);
 			}
-			for (int k = 0; k < stepSize; ++k) outputFIFO[k] = outputAccumulator[k];
+			for (long int k = 0; k < stepSize; ++k) outputFIFO[k] = outputAccumulator[k];
 
 
 			memmove(outputAccumulator, outputAccumulator+stepSize, frame_size*sizeof(float));
 
-			for (int k = 0; k < inputLatency; ++k) inputFIFO[k] = inputFIFO[k+stepSize];
+			for (long int k = 0; k < inputLatency; ++k) inputFIFO[k] = inputFIFO[k+stepSize];
 		}
 	}
 
