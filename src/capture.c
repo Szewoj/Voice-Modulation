@@ -119,6 +119,7 @@ int main(void)
         fid = fopen("samp/raw.raw", "wb");
         if( fid != NULL )
         {
+            /*https://stackoverflow.com/questions/10192903/time-in-milliseconds-in-c*/
             gettimeofday(&start, NULL);
             fwrite( start, sizeof(struct timeval), 1, fid);
             fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
