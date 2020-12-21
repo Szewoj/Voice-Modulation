@@ -35,7 +35,7 @@ queue<unsigned int> log1_time_diff;
 queue<unsigned int> log2_time_diff;
 
 
-void FFT(float* buffer, int frame_size, int direction); // direction: -1: FFT, 1: IFFT
+void FFT(float* buffer, long int frame_size, long int direction); // direction: -1: FFT, 1: IFFT
 void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata);
 
 void log_handler();
