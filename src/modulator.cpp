@@ -122,8 +122,7 @@ int main()
 		t_end = chrono::high_resolution_clock::now();
 
 		
-		time_span = t_start - t_end;
-		log2_time_diff.push(time_span.count());
+		log2_time_diff.push(chrono::duration_cast<chrono::nanoseconds>(t_start - t_end).count());
 		
 
 		samp_mod_file.write((char*)outSampleBuffer, inSamples*2);
