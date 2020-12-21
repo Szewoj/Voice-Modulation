@@ -40,9 +40,11 @@ void processSamples(long int semitones, long int numSamples, long int frame_size
 void log_handler();
 void SIGTERM_handler(int signal_id);
 
-int main()
+int main(int argc, char const *argv[])
 {	/*************************************************************************************/
-	// Main loop variables:	
+	// Main loop variables:
+	bool isMod = strtol(argv[1], NULL, 10) == 1;
+
 	int inSamples;
 
 	short int inSampleBuffer[BUFFER_SIZE] = {0};
@@ -120,7 +122,9 @@ int main()
 		sem_post(samp_raw_semaphore);
 
 		gettimeofday(&startTime, NULL);
-		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
+		if(isMod){
+			processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);			
+		}
 		gettimeofday(&endTime, NULL);;
 		log2_time_diff.push((endTime.tv_sec - startTime.tv_sec) * 1000000 + endTime.tv_usec - startTime.tv_usec);
 
@@ -134,7 +138,14 @@ int main()
 
 		gettimeofday(&postTime, NULL);
 		samp_mod_file.write((char*)&postTime, sizeof(struct timeval));
-		samp_mod_file.write((char*)inSampleBuffer, inSamples*2);
+		if(isMod){
+			samp_mod_file.write((char*)outSampleBuffer, inSamples*2);			
+		}else{
+			samp_mod_file.write((char*)inSampleBuffer, inSamples*2);		
+		}
+
+
+
 
 		samp_mod_file.close();
 		sem_post(samp_mod_semaphore);

@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 	bool system_on = false;
 	bool plotter_on = false;
 	int choice;
-	const char* MENU_TEXT = "\nMake a choice:\n1 - open generator\n2 - close generator\n3 - plot times\n4 - close plots\n5 - exit\n";
+	const char* MENU_TEXT = "\nMake a choice:\n1 - open system\n2 - close system\n3 - plot times\n4 - close plots\n5 - exit\n";
 	
 	for(;;){
 		choice = getChoice(MENU_TEXT, 5);

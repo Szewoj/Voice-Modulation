@@ -47,7 +47,7 @@ if __name__ == "__main__":
 		plt.figure(2*i+1)
 		n, bins, patches = plt.hist(x=times[i], bins=30, color='#0504aa', alpha=0.7, rwidth=0.4)
 		plt.grid(axis='y', alpha=0.75)
-		plt.xlabel('Opoznienie [ms]')
+		plt.xlabel('Opoznienie [us]')
 		plt.ylabel('Wystapienia')
 		plt.title("Histogram " + str(i+1))
 		plt.ylim(ymax=1.1*n.max())
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 		plt.plot(times[i])
 		plt.grid(axis='y', alpha=0.75)
 		plt.xlabel('Czas')
-		plt.ylabel('Opoznienie [ms]')
+		plt.ylabel('Opoznienie [us]')
 		plt.title("Przebieg czasowy " + str(i+1))
 		plt.ylim(ymax=1.1*max(times[i]))
 

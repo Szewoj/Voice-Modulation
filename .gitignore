@@ -1,3 +1,5 @@
 build
 logs
 samp
+src/generator.c
+src/modulator(ST).cpp

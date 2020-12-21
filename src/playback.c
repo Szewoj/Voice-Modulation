@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <semaphore.h>
+#include <sys/time.h>
 #include "portaudio.h"
 
 #define SAMPLE_RATE  (20000)
