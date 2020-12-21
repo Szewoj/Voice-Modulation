@@ -10,6 +10,7 @@
 #include <queue>
 #include <cmath>
 #include <cstring>
+#include <sys/time.h>
 
 #define SAMPLE_RATE (20000)
 #define NUM_CHANNELS (1)
@@ -55,6 +56,7 @@ int main()
 
 	/*************************************************************************************/
 	// Time measurement variables:
+	struct timeval sendTime, receiveTime;
 	chrono::steady_clock::time_point t_start;
 	chrono::steady_clock::time_point t_end;
 	/*************************************************************************************/
@@ -103,16 +105,17 @@ int main()
 			sem_post(samp_raw_semaphore);
 			continue;
 		}
+		samp_raw_file.read((char*)&sendTime, sizeof(struct timeval));
 		samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
 		inSamples = samp_raw_file.gcount() / 2;
 		samp_raw_file.close();
-
-		
 		if(!inSamples){
 			sem_post(samp_raw_semaphore);
 			continue;
 		}
-		log1_time_diff.push(inSamples);
+
+		gettimeofday(&receiveTime, NULL);
+		log1_time_diff.push((receiveTime.tv_sec - sendTime.tv_sec) * 1000000 + receiveTime.tv_usec - sendTime.tv_usec);
 		
 		samp_raw_file.open("samp/raw.raw", ios::binary | ios::out | fstream::trunc);
 		samp_raw_file.close();
