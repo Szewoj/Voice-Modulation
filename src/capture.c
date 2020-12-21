@@ -121,7 +121,7 @@ int main(void)
         {
             /*https://stackoverflow.com/questions/10192903/time-in-milliseconds-in-c*/
             gettimeofday(&start, NULL);
-            fwrite( start, sizeof(struct timeval), 1, fid);
+            fwrite( &start, sizeof(struct timeval), 1, fid);
             fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
             fclose( fid );
 
