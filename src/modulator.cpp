@@ -107,25 +107,30 @@ int main()
 		inSamples = samp_raw_file.gcount() / 2;
 		samp_raw_file.close();
 
-		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in | fstream::trunc);
+		if(!inSamples){
+			sem_post(samp_raw_semaphore);
+			continue;
+		}
 
+		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in | fstream::trunc);
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
 
 		t_start = chrono::steady_clock::now();
-		processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
+		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
 		t_end = chrono::steady_clock::now();
+		log2_time_diff.push(chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count());
 
 
 		sem_wait(samp_mod_semaphore);
 		samp_mod_file.open("samp/mod.raw", fstream::out | fstream::app | ios::binary);
-
+		if(!samp_mod_file){
+			sem_post(samp_mod_semaphore);
+			continue;
+		}
 		
-		log2_time_diff.push(chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count());
-		
-
-		samp_mod_file.write((char*)outSampleBuffer, inSamples*2);
+		samp_mod_file.write((char*)inSampleBuffer, inSamples*2);
 
 		samp_mod_file.close();
 		sem_post(samp_mod_semaphore);
