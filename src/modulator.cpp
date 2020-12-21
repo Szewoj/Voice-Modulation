@@ -107,6 +107,7 @@ int main()
 		inSamples = samp_raw_file.gcount() / 2;
 		samp_raw_file.close();
 
+		log1_time_diff.push(inSamples);
 		if(!inSamples){
 			sem_post(samp_raw_semaphore);
 			continue;
@@ -116,7 +117,6 @@ int main()
 		samp_raw_file.close();
 		sem_post(samp_raw_semaphore);
 
-		log1_time_diff.push(inSamples);
 		t_start = chrono::steady_clock::now();
 		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
 		t_end = chrono::steady_clock::now();
