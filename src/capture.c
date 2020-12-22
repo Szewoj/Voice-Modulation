@@ -58,7 +58,11 @@ int main(void)
     action.sa_handler = SIGTERM_handler;
     sigaction(SIGTERM, &action, NULL);
 
-    sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
+    fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
+    ftruncate(fdsl, 1);
+    sl = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
+
+
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -137,8 +141,7 @@ int main(void)
                 goto error;
         }
 
-        if(sem_wait(sem_id) < 0)
-            printf("[sem_wait] failed.\n");
+        sl_try(sl)
 
         gettimeofday(&start, NULL);
         memcpy( addr, &start, sizeof(struct timeval));
@@ -146,20 +149,19 @@ int main(void)
 
         printf("Wrote data to 'samp/raw.raw'.\n");
 
-        if (sem_post(sem_id) < 0)
-            printf("[sem_post] failed.\n");
+        sl_open(sl)
 
         free( samplesRecorded );
     }
     
-    sem_unlink(semName);
+    sl_open(sl);
 
     Pa_Terminate();
     return 0;
 
 error:
     Pa_Terminate();
-    sem_unlink(semName);
+    sl_open(sl);
     free( samplesRecorded );
     printf("An error occured while using the audio capture stream. Terminating...\n" );
     printf("Error number: %d\n", exception );
@@ -169,8 +171,7 @@ error:
 void SIGTERM_handler()
 {
 
-    sem_close(sem_id);
-    sem_unlink(semName);
+    sl_open(sl)
     Pa_Terminate();
 
     printf("Received kill signal. Terminating...\n" );
