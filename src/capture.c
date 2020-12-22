@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
@@ -22,24 +23,12 @@ typedef short SAMPLE;
 #define PRINTF_S_FORMAT "%d"
 
 const char *slName = "/samp_raw";
-char* sl;
+pthread_spinlock_t* sl;
 int fdsl;
 
 const char* shmName = "/raw";
 char* addr;
 int fd;
-
-
-void sl_try(char* sl)
-{
-    while(*sl);
-    *sl = 1;
-}
-
-void sl_open(char* sl)
-{
-    *sl = 0;
-}
 
 
 int main(void);
@@ -59,8 +48,8 @@ int main(void)
     sigaction(SIGTERM, &action, NULL);
 
     fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
-    ftruncate(fdsl, 1);
-    sl = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
+    ftruncate(fdsl, sizeof(pthread_spinlock_t));
+    sl = (pthread_spinlock_t*) mmap(NULL, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
 
 
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
@@ -141,7 +130,7 @@ int main(void)
                 goto error;
         }
 
-        sl_try(sl)
+        pthread_spin_lock(sl);
 
         gettimeofday(&start, NULL);
         memcpy( addr, &start, sizeof(struct timeval));
@@ -149,19 +138,17 @@ int main(void)
 
         printf("Wrote data to 'samp/raw.raw'.\n");
 
-        sl_open(sl)
+        pthread_spin_unlock(sl);
 
         free( samplesRecorded );
     }
-    
-    sl_open(sl);
 
     Pa_Terminate();
     return 0;
 
 error:
     Pa_Terminate();
-    sl_open(sl);
+
     free( samplesRecorded );
     printf("An error occured while using the audio capture stream. Terminating...\n" );
     printf("Error number: %d\n", exception );
@@ -170,8 +157,6 @@ error:
 }
 void SIGTERM_handler()
 {
-
-    sl_open(sl)
     Pa_Terminate();
 
     printf("Received kill signal. Terminating...\n" );

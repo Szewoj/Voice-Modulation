@@ -1,16 +1,19 @@
-#include<stdio.h>
-#include<sys/types.h>
-#include<stdbool.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<signal.h>
-#include<Python.h>
-#include<string.h>
-#include<semaphore.h>
-#include<sys/stat.h>
-#include<fcntl.h>
-#include<sys/wait.h>
-#include<sys/mman.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <Python.h>
+#include <string.h>
+#include <semaphore.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <sys/mman.h>
+#include <pthread.h>
+
+pthread_spinlock_t  *samp_raw_sl, *samp_mod_sl;
 
 void openSystem(bool* system_on, pid_t* system_pid);
 void runCapture(pid_t* system_pid);
@@ -23,6 +26,7 @@ int getChoice(const char* text, int max);
 bool goodButton(int c, int max);
 void unlinkSemaphores();
 void unlinkShm();
+void unlinkSpinlock();
 
 int main(int argc, char const *argv[])
 {
@@ -32,6 +36,23 @@ int main(int argc, char const *argv[])
 	bool plotter_on = false;
 	int choice;
 	const char* MENU_TEXT = "\nMake a choice:\n1 - open system\n2 - close system\n3 - plot times\n4 - close plots\n5 - exit\n";
+
+	int fd_samp_raw, fd_samp_mod;
+
+	fd_samp_raw = shm_open("/samp_raw", O_CREAT | O_RDWR, 0666);
+	ftruncate(fd_samp_raw, sizeof(pthread_spinlock_t));
+	samp_raw_sl = mmap(0, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_raw, 0);
+
+	fd_samp_mod = shm_open("/samp_mod", O_CREAT | O_RDWR, 0666);
+	ftruncate(fd_samp_mod, sizeof(pthread_spinlock_t));
+	samp_mod_sl = mmap(0, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
+
+
+	pthread_spin_init(samp_raw_sl, PTHREAD_PROCESS_SHARED);
+	pthread_spin_init(samp_mod_sl, PTHREAD_PROCESS_SHARED);
+
+
+
 	
 	for(;;){
 		choice = getChoice(MENU_TEXT, 5);
@@ -52,6 +73,7 @@ int main(int argc, char const *argv[])
 				closeSystem(&system_on, system_pid);
 				closePlots(&plotter_on, plotter_pid);
 				unlinkSemaphores();
+				unlinkSpinlock();
 				unlinkShm();
 				puts("closing system");
 				exit(0);
@@ -210,4 +232,12 @@ void unlinkSemaphores(){
 void unlinkShm(){
 	shm_unlink("/raw");
 	shm_unlink("/mod");
+	shm_unlink("/samp_raw");
+	shm_unlink("/samp_mod");
+
+}
+
+void unlinkSpinlock(){
+	pthread_spin_destroy(samp_raw_sl);
+	pthread_spin_destroy(samp_mod_sl);
 }

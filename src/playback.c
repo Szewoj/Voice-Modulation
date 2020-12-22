@@ -11,6 +11,7 @@
 #include "portaudio.h"
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
@@ -22,13 +23,16 @@ typedef short SAMPLE;
 #define SAMPLE_SILENCE  (0)
 #define PRINTF_S_FORMAT "%d"
 
-const char *semName = "/samp_mod";
+
 const char* shmName = "/mod";
 char* addr;
 int fd;
 sem_t* log3_semaphore;
-sem_t* sem_id;
 FILE  *fid;
+
+const char *slName = "/samp_mod";
+pthread_spinlock_t* sl;
+int fdsl;
 
 int main(void);
 void SIGTERM_handler();
@@ -56,14 +60,16 @@ int main(void)
     fid = fopen("logs/log3.txt", "w");
     fclose(fid);
 
-    sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    char t = *addr;
+
+    fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
+    ftruncate(fdsl, sizeof(pthread_spinlock_t));
+    sl = (pthread_spinlock_t*) mmap(NULL, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
 
     int i;
     float amountOfFrames;
@@ -107,8 +113,7 @@ int main(void)
 
         for( i=0; i<amountOfSamples; i++ ) samplesRecorded[i] = 0;
 
-        if(sem_wait(sem_id) < 0)
-            printf("[sem_wait] failed.\n");
+        pthread_spin_lock(sl);
 
         memcpy(&sendTime, addr, sizeof(struct timeval));
         memcpy(&error, addr, sizeof(long));
@@ -119,8 +124,7 @@ int main(void)
             printf("Read data from 'samp/mod.raw'.\n");
             }
 
-        if (sem_post(sem_id) < 0)
-            printf("[sem_post] failed.\n");
+        pthread_spin_unlock(sl);
 
         if(error)
         {
@@ -180,15 +184,14 @@ int main(void)
         free( samplesRecorded );
     }
         
-    sem_unlink(semName);
 
     Pa_Terminate();
     return 0;
 
 error:
     Pa_Terminate();
-    sem_close(sem_id);
-    sem_unlink(semName);
+
+
     free( samplesRecorded );
     printf("An error occured while using the audio playback stream. Terminating...\n" );
     printf("Error number: %d\n", exception );
@@ -198,8 +201,7 @@ error:
 
 void SIGTERM_handler()
 {
-    sem_close(sem_id);
-    sem_unlink(semName);
+
     Pa_Terminate();
 
     printf("Received kill signal. Terminating...\n" );

@@ -12,6 +12,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #define SAMPLE_RATE (20000)
 #define NUM_CHANNELS (1)
@@ -33,7 +34,8 @@ sem_t* log1_semaphore;
 sem_t* log2_semaphore;
 
 
-char *addrIn, *addrOut, *samp_raw_sl, *samp_mod_sl;
+char *addrIn, *addrOut;
+pthread_spinlock_t  *samp_raw_sl, *samp_mod_sl;
 int fdIn, fdOut, fd_samp_raw, fd_samp_mod;
 
 queue<unsigned int> log1_time_diff;
@@ -43,8 +45,6 @@ queue<unsigned int> log2_time_diff;
 void FFT(float* buffer, long int frame_size, long int direction); // direction: -1: FFT, 1: IFFT
 void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata);
 
-void sl_try(char* sl);
-void sl_open(char* sl);
 void log_handler();
 void SIGTERM_handler(int signal_id);
 
@@ -88,12 +88,12 @@ int main(int argc, char const *argv[])
 	addrOut = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
 
 	fd_samp_raw = shm_open("/samp_raw", O_CREAT | O_RDWR, 0666);
-	ftruncate(fd_samp_raw, 1);
-	samp_raw_sl = (char*)mmap(0, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_raw, 0);
+	ftruncate(fd_samp_raw, sizeof(pthread_spinlock_t));
+	samp_raw_sl = (pthread_spinlock_t*)mmap(0, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_raw, 0);
 
 	fd_samp_mod = shm_open("/samp_mod", O_CREAT | O_RDWR, 0666);
-	ftruncate(fd_samp_mod, 1);
-	samp_mod_sl = (char*)mmap(0, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
+	ftruncate(fd_samp_mod, sizeof(pthread_spinlock_t));
+	samp_mod_sl = (pthread_spinlock_t*)mmap(0, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
 
 	/*************************************************************************************/
 	// Log file initialisation:
@@ -112,13 +112,13 @@ int main(int argc, char const *argv[])
 	// Main processing loop:
 	while (true) 
 	{
-		sl_try(samp_raw_sl);
+		pthread_spin_lock(samp_raw_sl);
 
 		memcpy(&sendTime, addrIn, sizeof(struct timeval));
 		memcpy(&checkIn, addrIn, sizeof(long));
 		memcpy(inSampleBuffer, addrIn + sizeof(struct timeval), inSamples * sizeof(short int));
 		if(!checkIn){
-			sl_open(samp_raw_sl);
+			pthread_spin_unlock(samp_raw_sl);
 			continue;
 		}
 
@@ -127,7 +127,7 @@ int main(int argc, char const *argv[])
 		
 		memset(addrIn, 0,  sizeof(long));
 
-		sl_open(samp_raw_sl);
+		pthread_spin_unlock(samp_raw_sl);
 
 
 
@@ -140,7 +140,7 @@ int main(int argc, char const *argv[])
 
 
 
-		sl_try(samp_mod_sl);
+		pthread_spin_lock(samp_mod_sl);
 
 		gettimeofday(&postTime, NULL);
 		memcpy( addrOut, &postTime, sizeof(struct timeval));
@@ -150,7 +150,7 @@ int main(int argc, char const *argv[])
 		}else{
 			memcpy( addrOut + sizeof(struct timeval), inSampleBuffer, inSamples*sizeof(short int));		
 		}
-		sl_open(samp_mod_sl);
+		pthread_spin_unlock(samp_mod_sl);
 
 	}
 	/*************************************************************************************/
@@ -353,17 +353,6 @@ void processSamples(long int semitones, long int numSamples, long int frame_size
 
 }
 
-void sl_try(char* sl)
-{
-	while(*sl);
-	*sl = 1;
-}
-
-void sl_open(char* sl)
-{
-	*sl = 0;
-}
-
 
 void log_handler()
 {
@@ -425,16 +414,5 @@ void SIGTERM_handler(int signal_id)
 
 	sem_close(log2_semaphore);
 
-
-	if(*samp_mod_sl)
-		sl_open(samp_mod_sl);
-
-
-
-	if(*samp_raw_sl)
-		sl_open(samp_raw_sl);
-
-
-	
 	exit(EXIT_SUCCESS);
 }
