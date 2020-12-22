@@ -121,7 +121,7 @@ int main()
 
 		gettimeofday(&startTime, NULL);
 		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
-		gettimeofday(&endTime, NULL);;
+		gettimeofday(&endTime, NULL);
 		log2_time_diff.push((endTime.tv_sec - startTime.tv_sec) * 1000000 + endTime.tv_usec - startTime.tv_usec);
 
 
