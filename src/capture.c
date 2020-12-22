@@ -37,7 +37,7 @@ void SIGTERM_handler();
 int main(void)
 {
     fprintf(stderr,"running capture\n");
-    PaStreamParameters inputParam, outputParam;
+    PaStreamParameters inputParam;
     PaStream *audioStream;
     PaError exception;
     SAMPLE *samplesRecorded;
@@ -48,13 +48,15 @@ int main(void)
     action.sa_handler = SIGTERM_handler;
     sigaction(SIGTERM, &action, NULL);
 
+    int ret;
+
     fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
-    ftruncate(fdsl, sizeof(pthread_spinlock_t));
+    ret = ftruncate(fdsl, sizeof(pthread_spinlock_t));
     sl = (pthread_spinlock_t*) mmap(NULL, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
 
 
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-    ftruncate(fd, 2048);
+    ret = ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     int i;
