@@ -22,7 +22,7 @@
 #define MAX_FRAME_LENGTH (1024)
 
 #define FRAME_MS (20)
-#define OVERLAP_MS (1)
+#define OVERLAP_MS (10)
 
 #define NUM_MILISECONDS (20)
 
@@ -77,15 +77,15 @@ int main(int argc, char const *argv[])
 	// shared meMory init:
 	char* addrIn;
 	int fdIn;
-	fdIn = shm_open("/raw", O_CREAT, O_RDWR);
+	fdIn = shm_open("/raw", O_CREAT | O_RDWR, 0666);
 	ftruncate(fdIn, 2048);
-	addrIn = (char*)mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
+	addrIn = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
 
 	char* addrOut;
 	int fdOut;
-	fdOut = shm_open("/mod", O_CREAT, O_RDWR);
+	fdOut = shm_open("/mod", O_CREAT | O_RDWR, 0666);
 	ftruncate(fdOut, 2048);
-	addrOut = (char*)mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
+	addrOut = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
 
 	/*************************************************************************************/
 	// Log file initialisation:
@@ -105,9 +105,6 @@ int main(int argc, char const *argv[])
 	while (true) 
 	{
 		sem_wait(samp_raw_semaphore);
-		cerr<<"\n\nprzed addrIn\n\n";
-		char t = *addrIn;
-		cerr<<"\n\nza addrIn\n\n";
 		memcpy(&sendTime, addrIn, sizeof(struct timeval));
 		memcpy(&checkIn, addrIn, sizeof(long));
 		memcpy(inSampleBuffer, addrIn + sizeof(struct timeval), inSamples * sizeof(short int));

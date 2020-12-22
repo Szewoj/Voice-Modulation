@@ -44,7 +44,7 @@ int main(void)
     sigaction(SIGTERM, &action, NULL);
 
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
-    fd = shm_open(shmName, O_CREAT, O_RDWR);
+    fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 

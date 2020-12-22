@@ -53,10 +53,13 @@ int main(void)
     action2.sa_handler = SIGTERM_handler;
     sigaction(SIGINT, &action2, NULL);
 
+    fid = fopen("logs/log3.txt", "w");
+    fclose(fid);
+
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
-    fd = shm_open(shmName, O_CREAT, O_RDWR);
+    fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
@@ -107,9 +110,7 @@ int main(void)
         if(sem_wait(sem_id) < 0)
             printf("[sem_wait] failed.\n");
 
-          fprintf(stderr,"\n\naddr: %p\n\n", addr);
         memcpy(&sendTime, addr, sizeof(struct timeval));
-         fprintf(stderr,"\n\npo port audio\n\n");
         memcpy(&error, addr, sizeof(long));
         memcpy(samplesRecorded, addr + sizeof(struct timeval), NUM_CHANNELS * sizeof(SAMPLE) * amountOfFrames);
 

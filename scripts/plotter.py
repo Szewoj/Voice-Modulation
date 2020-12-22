@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import posix_ipc
 import signal
+import math
 
 sem = [posix_ipc.Semaphore("/log1", posix_ipc.O_CREAT, mode = posix_ipc.O_RDWR, initial_value = 1),\
 posix_ipc.Semaphore("/log2", posix_ipc.O_CREAT, mode = posix_ipc.O_RDWR, initial_value = 1),\
@@ -43,6 +44,17 @@ if __name__ == "__main__":
 		times.append(timeVec)
 		sem[i].release()
 		sem[i].close()
+
+		times[0][0] = times[0][1]
+
+		srednia = sum(times[i])/float(len(times[i]))
+		print("log" + str(i+1))
+		print("\tsrednia: " + str(srednia))
+		orange = 0
+		for time in times[i]:
+			orange = orange + (time - srednia)**2
+
+		print("\todchylenie standardowe: " + str(math.sqrt(orange)/len(times[i])))
 
 		plt.figure(2*i+1)
 		n, bins, patches = plt.hist(x=times[i], bins=30, color='#0504aa', alpha=0.7, rwidth=0.4)
