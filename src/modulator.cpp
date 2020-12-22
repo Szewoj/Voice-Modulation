@@ -10,6 +10,8 @@
 #include <cstring>
 #include <sys/time.h>
 #include <sys/mman.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #define SAMPLE_RATE (20000)
 #define NUM_CHANNELS (1)

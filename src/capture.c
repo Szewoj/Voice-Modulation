@@ -8,6 +8,8 @@
 #include "portaudio.h"
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
