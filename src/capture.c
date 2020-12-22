@@ -36,6 +36,7 @@ void SIGTERM_handler();
 
 int main(void)
 {
+    fprintf(stderr,"running capture\n");
     PaStreamParameters inputParam, outputParam;
     PaStream *audioStream;
     PaError exception;
@@ -137,8 +138,10 @@ int main(void)
         memcpy( addr + sizeof(struct timeval), samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE)* amountOfFrames);
 
         printf("Wrote data to 'samp/raw.raw'.\n");
+        //fprintf(stderr,"Wrote data to 'samp/raw.raw'.\n");
 
         pthread_spin_unlock(sl);
+
 
         free( samplesRecorded );
     }

@@ -27,20 +27,37 @@ typedef short SAMPLE;
 const char* shmName = "/mod";
 char* addr;
 int fd;
+
 sem_t* log3_semaphore;
 FILE  *fid;
 
 const char *slName = "/samp_mod";
 pthread_spinlock_t* sl;
+
 int fdsl;
 
 int main(void);
 void SIGTERM_handler();
 
+void sl_try(char* sl)
+{
+    fprintf(stderr,"trying, sl = %d\n", *sl);
+    while(*sl);
+    memset(sl, 1,  sizeof(char));
+    fprintf(stderr,"locked, sl = %d\n", *sl);
+}
+
+void sl_open(char* sl)
+{
+    fprintf(stderr,"openieng, sl = %d\n", *sl);
+    memset(sl, 0,  sizeof(char));
+    fprintf(stderr,"opened, sl = %d\n", *sl);
+}
+
 int main(void)
 {
-
-    PaStreamParameters inputParam, outputParam;
+    fprintf(stderr,"running playback\n");
+    PaStreamParameters outputParam;
     PaStream *audioStream;
     PaError exception;
     SAMPLE *samplesRecorded;
@@ -67,9 +84,11 @@ int main(void)
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 
+
     fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
     ftruncate(fdsl, sizeof(pthread_spinlock_t));
     sl = (pthread_spinlock_t*) mmap(NULL, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
+
 
     int i;
     float amountOfFrames;
@@ -113,7 +132,9 @@ int main(void)
 
         for( i=0; i<amountOfSamples; i++ ) samplesRecorded[i] = 0;
 
+
         pthread_spin_lock(sl);
+
 
         memcpy(&sendTime, addr, sizeof(struct timeval));
         memcpy(&error, addr, sizeof(long));
@@ -122,9 +143,12 @@ int main(void)
         if(error){
             memset(addr, 0,  sizeof(long));
             printf("Read data from 'samp/mod.raw'.\n");
+            //fprintf(stderr, "Read data from 'samp/mod.raw'.\n");
             }
 
+
         pthread_spin_unlock(sl);
+
 
         if(error)
         {
@@ -142,6 +166,7 @@ int main(void)
             //fwrite( &time, sizeof(unsigned int), 1, fid);
             fclose( fid );
             printf("write data to 'logs/log3.txt'.\n");
+            //fprintf(stderr,"write data to 'logs/log3.txt'.\n");
         }
 
         if (sem_post(log3_semaphore) < 0)
@@ -183,14 +208,12 @@ int main(void)
         }
         free( samplesRecorded );
     }
-        
 
     Pa_Terminate();
     return 0;
 
 error:
     Pa_Terminate();
-
 
     free( samplesRecorded );
     printf("An error occured while using the audio playback stream. Terminating...\n" );
@@ -203,7 +226,7 @@ void SIGTERM_handler()
 {
 
     Pa_Terminate();
-
+    sl_open(sl);
     printf("Received kill signal. Terminating...\n" );
     exit(EXIT_SUCCESS);
 }

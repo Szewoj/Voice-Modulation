@@ -219,14 +219,6 @@ void unlinkSemaphores(){
 		sem_close(sem);
 		sem_unlink(semName);
 	}
-
-	sem = sem_open("/samp_raw", O_CREAT, O_RDWR, 1);
-	sem_close(sem);
-	sem_unlink("/samp_raw");
-	
-	sem = sem_open("/samp_mod", O_CREAT, O_RDWR, 1);
-	sem_close(sem);
-	sem_unlink("/samp_mod");
 }
 
 void unlinkShm(){
@@ -234,10 +226,10 @@ void unlinkShm(){
 	shm_unlink("/mod");
 	shm_unlink("/samp_raw");
 	shm_unlink("/samp_mod");
-
 }
 
 void unlinkSpinlock(){
 	pthread_spin_destroy(samp_raw_sl);
 	pthread_spin_destroy(samp_mod_sl);
+
 }
