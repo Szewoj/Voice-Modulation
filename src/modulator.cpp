@@ -23,7 +23,7 @@
 #define MAX_FRAME_LENGTH (1024)
 
 #define FRAME_MS (20)
-#define OVERLAP_MS (10)
+#define OVERLAP_MS (1)
 
 #define NUM_MILISECONDS (20)
 
