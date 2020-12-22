@@ -39,21 +39,6 @@ int fdsl;
 int main(void);
 void SIGTERM_handler();
 
-void sl_try(char* sl)
-{
-    fprintf(stderr,"trying, sl = %d\n", *sl);
-    while(*sl);
-    memset(sl, 1,  sizeof(char));
-    fprintf(stderr,"locked, sl = %d\n", *sl);
-}
-
-void sl_open(char* sl)
-{
-    fprintf(stderr,"openieng, sl = %d\n", *sl);
-    memset(sl, 0,  sizeof(char));
-    fprintf(stderr,"opened, sl = %d\n", *sl);
-}
-
 int main(void)
 {
     fprintf(stderr,"running playback\n");
@@ -79,14 +64,16 @@ int main(void)
 
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
+    int ret;
+
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-    ftruncate(fd, 2048);
+    ret = ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 
 
     fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
-    ftruncate(fdsl, sizeof(pthread_spinlock_t));
+    ret = ftruncate(fdsl, sizeof(pthread_spinlock_t));
     sl = (pthread_spinlock_t*) mmap(NULL, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
 
 
@@ -226,7 +213,6 @@ void SIGTERM_handler()
 {
 
     Pa_Terminate();
-    sl_open(sl);
     printf("Received kill signal. Terminating...\n" );
     exit(EXIT_SUCCESS);
 }

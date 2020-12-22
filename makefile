@@ -21,16 +21,16 @@ samp:
 	mkdir samp
 
 capture: src/capture.c
-	$(C) -Wall src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
+	$(C) src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
 
 playback: src/playback.c
-	$(C) -Wall src/playback.c $(inc) -o $(ODIR)/playback $(CFLAGS) $(lib)
+	$(C) src/playback.c $(inc) -o $(ODIR)/playback $(CFLAGS) $(lib)
 
 summoner: src/summoner.c
-	$(C) -Wall src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7 -lpthread -lrt
+	$(C) src/summoner.c -I/usr/include/python2.7 -o $(ODIR)/summoner -lpython2.7 -lpthread -lrt
 
 modulator: src/modulator.cpp 
-	$(CPP) -Wall src/modulator.cpp -o $(ODIR)/modulator -lpthread -lm -lrt
+	$(CPP) src/modulator.cpp -o $(ODIR)/modulator -lpthread -lm -lrt
 
 .PHONY: clean
 clean:
