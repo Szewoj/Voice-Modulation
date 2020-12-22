@@ -10,6 +10,7 @@
 #include<sys/stat.h>
 #include<fcntl.h>
 #include<sys/wait.h>
+#include<sys/mman.h>
 
 void openSystem(bool* system_on, pid_t* system_pid);
 void runCapture(pid_t* system_pid);
@@ -21,6 +22,7 @@ void closePlots(bool* plotter_on, pid_t plotter_pid);
 int getChoice(const char* text, int max);
 bool goodButton(int c, int max);
 void unlinkSemaphores();
+void unlinkShm();
 
 int main(int argc, char const *argv[])
 {
@@ -50,6 +52,7 @@ int main(int argc, char const *argv[])
 				closeSystem(&system_on, system_pid);
 				closePlots(&plotter_on, plotter_pid);
 				unlinkSemaphores();
+				unlinkShm();
 				puts("closing system");
 				exit(0);
 			break;
@@ -202,4 +205,9 @@ void unlinkSemaphores(){
 	sem = sem_open("/samp_mod", O_CREAT, O_RDWR, 1);
 	sem_close(sem);
 	sem_unlink("/samp_mod");
+}
+
+void unlinkShm(){
+	shm_unlink("/raw");
+	shm_unlink("/mod");
 }

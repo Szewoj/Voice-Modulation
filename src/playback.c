@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include "portaudio.h"
 
 #define SAMPLE_RATE  (20000)
@@ -19,6 +21,9 @@ typedef short SAMPLE;
 #define PRINTF_S_FORMAT "%d"
 
 const char *semName = "/samp_mod";
+const char* shmName = "/mod";
+char* addr;
+int fd;
 sem_t* log3_semaphore;
 sem_t* sem_id;
 FILE  *fid;
@@ -28,6 +33,7 @@ void SIGTERM_handler();
 
 int main(void)
 {
+
     PaStreamParameters inputParam, outputParam;
     PaStream *audioStream;
     PaError exception;
@@ -48,6 +54,11 @@ int main(void)
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
+    fd = shm_open(shmName, O_CREAT, O_RDWR);
+    addr = mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    char t = *addr;
+
     int i;
     float amountOfFrames;
     int amountOfSamples;
@@ -58,6 +69,7 @@ int main(void)
     amountOfBytes = amountOfSamples * sizeof(SAMPLE);
 
     exception = Pa_Initialize();
+
     if( exception != paNoError ) 
         goto error;
 
@@ -73,13 +85,13 @@ int main(void)
     outputParam.suggestedLatency = Pa_GetDeviceInfo( outputParam.device )->defaultLowOutputLatency;
     outputParam.hostApiSpecificStreamInfo = NULL;
 
-
+    
     while(1)
     {
         //printf("playback loop\n");
 
         samplesRecorded = (SAMPLE *) malloc( amountOfBytes );
-        int error = 0;
+        long error = 0;
 
         if( samplesRecorded == NULL )
         {
@@ -92,19 +104,16 @@ int main(void)
         if(sem_wait(sem_id) < 0)
             printf("[sem_wait] failed.\n");
 
-        fid = fopen("samp/mod.raw", "rb");
-        if( fid != NULL )
-        {        
-            error = fread(&sendTime, sizeof(struct timeval),1,fid);
-            error = fread( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
-            if(error)
-                {
-                    fclose(fid);
-                    fid = fopen("samp/mod.raw", "w");
-                    printf("Read data from 'samp/mod.raw'.\n");
-                }
-            fclose( fid );
-        }
+          fprintf(stderr,"\n\naddr: %p\n\n", addr);
+        memcpy(&sendTime, addr, sizeof(struct timeval));
+         fprintf(stderr,"\n\npo port audio\n\n");
+        memcpy(&error, addr, sizeof(long));
+        memcpy(samplesRecorded, addr + sizeof(struct timeval), NUM_CHANNELS * sizeof(SAMPLE) * amountOfFrames);
+
+        if(error){
+            memset(addr, 0,  sizeof(long));
+            printf("Read data from 'samp/mod.raw'.\n");
+            }
 
         if (sem_post(sem_id) < 0)
             printf("[sem_post] failed.\n");

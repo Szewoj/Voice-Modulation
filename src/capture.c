@@ -4,8 +4,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <semaphore.h>
+#include <sys/mman.h>
 #include "portaudio.h"
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
@@ -19,6 +21,9 @@ typedef short SAMPLE;
 
 const char *semName = "/samp_raw";
 sem_t* sem_id;
+const char* shmName = "/raw";
+char* addr;
+int fd;
 
 int main(void);
 void SIGTERM_handler();
@@ -37,6 +42,8 @@ int main(void)
     sigaction(SIGTERM, &action, NULL);
 
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
+    fd = shm_open(shmName, O_CREAT, O_RDWR);
+    addr = mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     int i;
     float amountOfFrames;
@@ -115,17 +122,11 @@ int main(void)
         if(sem_wait(sem_id) < 0)
             printf("[sem_wait] failed.\n");
 
-        FILE  *fid;
-        fid = fopen("samp/raw.raw", "wb");
-        if( fid != NULL )
-        {
-            gettimeofday(&start, NULL);
-            fwrite( &start, sizeof(struct timeval), 1, fid);
-            fwrite( samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE), amountOfFrames, fid );
-            fclose( fid );
+        gettimeofday(&start, NULL);
+        memcpy( addr, &start, sizeof(struct timeval));
+        memcpy( addr + sizeof(struct timeval), samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE)* amountOfFrames);
 
-            //printf("Wrote data to 'samp/raw.raw'.\n");
-        }
+        printf("Wrote data to 'samp/raw.raw'.\n");
 
         if (sem_post(sem_id) < 0)
             printf("[sem_post] failed.\n");

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <sys/time.h>
+#include <sys/mman.h>
 
 #define SAMPLE_RATE (20000)
 #define NUM_CHANNELS (1)
@@ -20,6 +21,8 @@
 
 #define FRAME_MS (20)
 #define OVERLAP_MS (1)
+
+#define NUM_MILISECONDS (20)
 
 using namespace std;
 
@@ -44,14 +47,15 @@ int main(int argc, char const *argv[])
 	// Main loop variables:
 	bool isMod = strtol(argv[1], NULL, 10) == 1;
 
-	int inSamples;
-
+	int inSamples = NUM_MILISECONDS * SAMPLE_RATE/1000;
 	short int inSampleBuffer[BUFFER_SIZE] = {0};
 	short int outSampleBuffer[BUFFER_SIZE] = {0};
+
 
 	int sframe = SAMPLE_RATE * FRAME_MS /1000;
 	int overlap = SAMPLE_RATE * OVERLAP_MS /1000;
 
+	long checkIn;
 	/*************************************************************************************/
 	// Time measurement variables:
 	struct timeval sendTime, receiveTime;
@@ -66,6 +70,19 @@ int main(int argc, char const *argv[])
 
 	signal(SIGTERM, SIGTERM_handler);
 	signal(SIGINT, SIGTERM_handler);
+
+	/*************************************************************************************/
+	// shared meMory init:
+	char* addrIn;
+	int fdIn;
+	fdIn = shm_open("/raw", O_CREAT, O_RDWR);
+	addrIn = (char*)mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
+
+	char* addrOut;
+	int fdOut;
+	fdOut = shm_open("/mod", O_CREAT, O_RDWR);
+	addrOut = (char*)mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
+
 	/*************************************************************************************/
 	// Log file initialisation:
 	fstream log_file;
@@ -77,20 +94,6 @@ int main(int argc, char const *argv[])
 	log_file.close();
 
 	/*************************************************************************************/
-	// Modified samples file initialisation:
-	fstream samp_mod_file;
-
-	samp_mod_file.open("samp/mod.raw", fstream::out | fstream::trunc | ios::binary);
-	samp_mod_file.close();
-
-	/*************************************************************************************/
-	// Raw samples file variable:
-	fstream samp_raw_file;
-
-	//samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
-	//samp_raw_file.close();
-
-	/*************************************************************************************/
 	// Logging thread launch:
 	thread logging_thread(log_handler);
 	/*************************************************************************************/
@@ -98,16 +101,13 @@ int main(int argc, char const *argv[])
 	while (true) 
 	{
 		sem_wait(samp_raw_semaphore);
-		samp_raw_file.open("samp/raw.raw", ios::binary | ios::in);
-		if(!samp_raw_file){
-			sem_post(samp_raw_semaphore);
-			continue;
-		}
-		samp_raw_file.read((char*)&sendTime, sizeof(struct timeval));
-		samp_raw_file.read((char*)inSampleBuffer, BUFFER_SIZE*2);
-		inSamples = samp_raw_file.gcount() / 2;
-		samp_raw_file.close();
-		if(!inSamples){
+		cerr<<"\n\nprzed addrIn\n\n";
+		char t = *addrIn;
+		cerr<<"\n\nza addrIn\n\n";
+		memcpy(&sendTime, addrIn, sizeof(struct timeval));
+		memcpy(&checkIn, addrIn, sizeof(long));
+		memcpy(inSampleBuffer, addrIn + sizeof(struct timeval), inSamples * sizeof(short int));
+		if(!checkIn){
 			sem_post(samp_raw_semaphore);
 			continue;
 		}
@@ -115,8 +115,7 @@ int main(int argc, char const *argv[])
 		gettimeofday(&receiveTime, NULL);
 		log1_time_diff.push((receiveTime.tv_sec - sendTime.tv_sec) * 1000000 + receiveTime.tv_usec - sendTime.tv_usec);
 		
-		samp_raw_file.open("samp/raw.raw", ios::binary | ios::out | fstream::trunc);
-		samp_raw_file.close();
+		memset(addrIn, 0,  sizeof(long));
 		sem_post(samp_raw_semaphore);
 
 		gettimeofday(&startTime, NULL);
@@ -128,26 +127,16 @@ int main(int argc, char const *argv[])
 
 
 		sem_wait(samp_mod_semaphore);
-		samp_mod_file.open("samp/mod.raw", fstream::out | ios::binary);
-		if(!samp_mod_file){
-			sem_post(samp_mod_semaphore);
-			continue;
-		}
 
 		gettimeofday(&postTime, NULL);
-		samp_mod_file.write((char*)&postTime, sizeof(struct timeval));
+		memcpy( addrOut, &postTime, sizeof(struct timeval));
+
 		if(isMod){
-			samp_mod_file.write((char*)outSampleBuffer, inSamples*2);			
+			memcpy( addrOut + sizeof(struct timeval), outSampleBuffer, inSamples*sizeof(short int));			
 		}else{
-			samp_mod_file.write((char*)inSampleBuffer, inSamples*2);		
+			memcpy( addrOut + sizeof(struct timeval), inSampleBuffer, inSamples*sizeof(short int));		
 		}
-
-
-
-
-		samp_mod_file.close();
 		sem_post(samp_mod_semaphore);
-
 
 	}
 	/*************************************************************************************/
