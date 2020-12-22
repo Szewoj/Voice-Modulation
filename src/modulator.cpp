@@ -76,12 +76,14 @@ int main(int argc, char const *argv[])
 	char* addrIn;
 	int fdIn;
 	fdIn = shm_open("/raw", O_CREAT, O_RDWR);
-	addrIn = (char*)mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
+	ftruncate(fdIn, 2048);
+	addrIn = (char*)mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
 
 	char* addrOut;
 	int fdOut;
 	fdOut = shm_open("/mod", O_CREAT, O_RDWR);
-	addrOut = (char*)mmap(NULL, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
+	ftruncate(fdOut, 2048);
+	addrOut = (char*)mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
 
 	/*************************************************************************************/
 	// Log file initialisation:
