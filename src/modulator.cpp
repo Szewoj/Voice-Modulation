@@ -19,7 +19,7 @@
 #define MAX_FRAME_LENGTH (1024)
 
 #define SEQUENCE_MS (40)
-#define FRAME_MS (20)
+#define FRAME_MS (10)
 #define OVERLAP_MS (1)
 
 using namespace std;
@@ -120,7 +120,7 @@ int main()
 		sem_post(samp_raw_semaphore);
 
 		gettimeofday(&startTime, NULL);
-		//processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
+		processSamples(PITCH_SEMITONES, inSamples, sframe, overlap, SAMPLE_RATE, inSampleBuffer, outSampleBuffer);
 		gettimeofday(&endTime, NULL);
 		log2_time_diff.push((endTime.tv_sec - startTime.tv_sec) * 1000000 + endTime.tv_usec - startTime.tv_usec);
 
@@ -134,7 +134,7 @@ int main()
 
 		gettimeofday(&postTime, NULL);
 		samp_mod_file.write((char*)&postTime, sizeof(struct timeval));
-		samp_mod_file.write((char*)inSampleBuffer, inSamples*2);
+		samp_mod_file.write((char*)outSampleBuffer, inSamples*2);
 
 		samp_mod_file.close();
 		sem_post(samp_mod_semaphore);
