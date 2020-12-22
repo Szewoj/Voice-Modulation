@@ -31,8 +31,10 @@ using namespace std;
 
 sem_t* log1_semaphore;
 sem_t* log2_semaphore;
-sem_t* samp_raw_semaphore;
-sem_t* samp_mod_semaphore;
+
+
+char* addrIn, addrOut, samp_raw_sl, samp_mod_sl;
+int fdIn, fdOut, fd_samp_raw, fd_samp_mod;
 
 queue<unsigned int> log1_time_diff;
 queue<unsigned int> log2_time_diff;
@@ -41,6 +43,8 @@ queue<unsigned int> log2_time_diff;
 void FFT(float* buffer, long int frame_size, long int direction); // direction: -1: FFT, 1: IFFT
 void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata);
 
+void sl_try(char* sl);
+void sl_open(char* sl);
 void log_handler();
 void SIGTERM_handler(int signal_id);
 
@@ -67,25 +71,29 @@ int main(int argc, char const *argv[])
 	// Semaphore configuration
 	log1_semaphore = sem_open("/log1", O_CREAT, O_RDWR, 1);
 	log2_semaphore = sem_open("/log2", O_CREAT, O_RDWR, 1);
-	samp_raw_semaphore = sem_open("/samp_raw", O_CREAT, O_RDWR, 1);
-	samp_mod_semaphore = sem_open("/samp_mod", O_CREAT, O_RDWR, 1);
+
 
 	signal(SIGTERM, SIGTERM_handler);
 	signal(SIGINT, SIGTERM_handler);
 
 	/*************************************************************************************/
-	// shared meMory init:
-	char* addrIn;
-	int fdIn;
+	// Shared memory and spinlock initialisation:
+
 	fdIn = shm_open("/raw", O_CREAT | O_RDWR, 0666);
 	ftruncate(fdIn, 2048);
 	addrIn = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
 
-	char* addrOut;
-	int fdOut;
 	fdOut = shm_open("/mod", O_CREAT | O_RDWR, 0666);
 	ftruncate(fdOut, 2048);
 	addrOut = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdOut, 0);
+
+	fd_samp_raw = shm_open("/samp_raw", O_CREAT | O_RDWR, 0666);
+	ftruncate(fd_samp_raw, 1);
+	samp_raw_sl = (char*)mmap(0, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_raw, 0);
+
+	fd_samp_mod = shm_open("/samp_mod", O_CREAT | O_RDWR, 0666);
+	ftruncate(fd_samp_mod, 1);
+	samp_mod_sl = (char*)mmap(0, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
 
 	/*************************************************************************************/
 	// Log file initialisation:
@@ -104,7 +112,8 @@ int main(int argc, char const *argv[])
 	// Main processing loop:
 	while (true) 
 	{
-		sem_wait(samp_raw_semaphore);
+		sl_try(samp_raw_sl);
+
 		memcpy(&sendTime, addrIn, sizeof(struct timeval));
 		memcpy(&checkIn, addrIn, sizeof(long));
 		memcpy(inSampleBuffer, addrIn + sizeof(struct timeval), inSamples * sizeof(short int));
@@ -117,7 +126,10 @@ int main(int argc, char const *argv[])
 		log1_time_diff.push((receiveTime.tv_sec - sendTime.tv_sec) * 1000000 + receiveTime.tv_usec - sendTime.tv_usec);
 		
 		memset(addrIn, 0,  sizeof(long));
-		sem_post(samp_raw_semaphore);
+
+		sl_open(samp_raw_sl);
+
+
 
 		gettimeofday(&startTime, NULL);
 		if(isMod){
@@ -127,7 +139,8 @@ int main(int argc, char const *argv[])
 		log2_time_diff.push((endTime.tv_sec - startTime.tv_sec) * 1000000 + endTime.tv_usec - startTime.tv_usec);
 
 
-		sem_wait(samp_mod_semaphore);
+
+		sl_try(samp_mod_sl);
 
 		gettimeofday(&postTime, NULL);
 		memcpy( addrOut, &postTime, sizeof(struct timeval));
@@ -137,7 +150,7 @@ int main(int argc, char const *argv[])
 		}else{
 			memcpy( addrOut + sizeof(struct timeval), inSampleBuffer, inSamples*sizeof(short int));		
 		}
-		sem_post(samp_mod_semaphore);
+		sl_open(samp_mod_sl);
 
 	}
 	/*************************************************************************************/
@@ -340,6 +353,18 @@ void processSamples(long int semitones, long int numSamples, long int frame_size
 
 }
 
+void sl_try(char* sl)
+{
+	while(*sl);
+	*sl = 1;
+}
+
+void sl_open(char* sl)
+{
+	*sl = 0;
+}
+
+
 void log_handler()
 {
 	fstream log_file;
@@ -401,18 +426,14 @@ void SIGTERM_handler(int signal_id)
 	sem_close(log2_semaphore);
 
 
-	sem_getvalue(samp_raw_semaphore, &tmp);
-	if(!tmp)
-		sem_post(samp_raw_semaphore);
-
-	sem_close(samp_raw_semaphore);
+	if(*samp_mod_sl)
+		sl_open(samp_mod_sl);
 
 
-	sem_getvalue(samp_mod_semaphore, &tmp);
-	if(!tmp)
-		sem_post(samp_mod_semaphore);
 
-	sem_close(samp_mod_semaphore);
+	if(*samp_raw_sl)
+		sl_open(samp_raw_sl);
+
 
 	
 	exit(EXIT_SUCCESS);

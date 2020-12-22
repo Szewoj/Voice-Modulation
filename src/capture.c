@@ -21,11 +21,26 @@ typedef short SAMPLE;
 #define SAMPLE_SILENCE  (0)
 #define PRINTF_S_FORMAT "%d"
 
-const char *semName = "/samp_raw";
-sem_t* sem_id;
+const char *slName = "/samp_raw";
+char* sl;
+int fdsl;
+
 const char* shmName = "/raw";
 char* addr;
 int fd;
+
+
+void sl_try(char* sl)
+{
+    while(*sl);
+    *sl = 1;
+}
+
+void sl_open(char* sl)
+{
+    *sl = 0;
+}
+
 
 int main(void);
 void SIGTERM_handler();
