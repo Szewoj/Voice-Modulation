@@ -18,8 +18,8 @@
 
 #define PITCH_SEMITONES (10)
 
-#define BUFFER_SIZE (2048)
-#define MAX_FRAME_LENGTH (1024)
+#define BUFFER_SIZE (4096)
+#define MAX_FRAME_LENGTH (4096)
 
 #define FRAME_MS (20)
 #define OVERLAP_MS (1)
