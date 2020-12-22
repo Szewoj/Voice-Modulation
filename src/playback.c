@@ -22,20 +22,38 @@ typedef short SAMPLE;
 #define SAMPLE_SILENCE  (0)
 #define PRINTF_S_FORMAT "%d"
 
-const char *semName = "/samp_mod";
 const char* shmName = "/mod";
 char* addr;
 int fd;
+
 sem_t* log3_semaphore;
-sem_t* sem_id;
 FILE  *fid;
+
+const char *slName = "/samp_mod";
+char* sl;
+int fdsl;
 
 int main(void);
 void SIGTERM_handler();
 
+void sl_try(char* sl)
+{
+    fprintf(stderr,"trying, sl = %d\n", *sl);
+    while(*sl);
+    memset(sl, 1,  sizeof(char));
+    fprintf(stderr,"locked, sl = %d\n", *sl);
+}
+
+void sl_open(char* sl)
+{
+    fprintf(stderr,"openieng, sl = %d\n", *sl);
+    memset(sl, 0,  sizeof(char));
+    fprintf(stderr,"opened, sl = %d\n", *sl);
+}
+
 int main(void)
 {
-
+    fprintf(stderr,"running playback\n");
     PaStreamParameters outputParam;
     PaStream *audioStream;
     PaError exception;
@@ -56,7 +74,10 @@ int main(void)
     fid = fopen("logs/log3.txt", "w");
     fclose(fid);
 
-    sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
+    fdsl = shm_open(slName, O_CREAT | O_RDWR, 0666);
+    ftruncate(fdsl, 1);
+    sl = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fdsl, 0);
+
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
 
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
@@ -105,8 +126,7 @@ int main(void)
 
         for( i=0; i<amountOfSamples; i++ ) samplesRecorded[i] = 0;
 
-        if(sem_wait(sem_id) < 0)
-            printf("[sem_wait] failed.\n");
+        sl_try(sl);
 
         memcpy(&sendTime, addr, sizeof(struct timeval));
         memcpy(&error, addr, sizeof(long));
@@ -115,10 +135,10 @@ int main(void)
         if(error){
             memset(addr, 0,  sizeof(long));
             printf("Read data from 'samp/mod.raw'.\n");
+            //fprintf(stderr, "Read data from 'samp/mod.raw'.\n");
             }
 
-        if (sem_post(sem_id) < 0)
-            printf("[sem_post] failed.\n");
+        sl_open(sl);
 
         if(error)
         {
@@ -136,6 +156,7 @@ int main(void)
             //fwrite( &time, sizeof(unsigned int), 1, fid);
             fclose( fid );
             printf("write data to 'logs/log3.txt'.\n");
+            //fprintf(stderr,"write data to 'logs/log3.txt'.\n");
         }
 
         if (sem_post(log3_semaphore) < 0)
@@ -177,16 +198,13 @@ int main(void)
         }
         free( samplesRecorded );
     }
-        
-    sem_unlink(semName);
 
     Pa_Terminate();
     return 0;
 
 error:
     Pa_Terminate();
-    sem_close(sem_id);
-    sem_unlink(semName);
+    sl_open(sl);
     free( samplesRecorded );
     printf("An error occured while using the audio playback stream. Terminating...\n" );
     printf("Error number: %d\n", exception );
@@ -196,10 +214,8 @@ error:
 
 void SIGTERM_handler()
 {
-    sem_close(sem_id);
-    sem_unlink(semName);
     Pa_Terminate();
-
+    sl_open(sl);
     printf("Received kill signal. Terminating...\n" );
     exit(EXIT_SUCCESS);
 }

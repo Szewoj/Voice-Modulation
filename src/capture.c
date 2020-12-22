@@ -32,13 +32,17 @@ int fd;
 
 void sl_try(char* sl)
 {
+    fprintf(stderr,"trying, sl = %d\n", *sl);
     while(*sl);
-    *sl = 1;
+    memset(sl, 1,  sizeof(char));
+    fprintf(stderr,"locked, sl = %d\n", *sl);
 }
 
 void sl_open(char* sl)
 {
-    *sl = 0;
+    fprintf(stderr,"openieng, sl = %d\n", *sl);
+    memset(sl, 0,  sizeof(char));
+    fprintf(stderr,"opened, sl = %d\n", *sl);
 }
 
 
@@ -47,6 +51,7 @@ void SIGTERM_handler();
 
 int main(void)
 {
+    fprintf(stderr,"running capture\n");
     PaStreamParameters inputParam, outputParam;
     PaStream *audioStream;
     PaError exception;
@@ -141,15 +146,16 @@ int main(void)
                 goto error;
         }
 
-        sl_try(sl)
+        sl_try(sl);
 
         gettimeofday(&start, NULL);
         memcpy( addr, &start, sizeof(struct timeval));
         memcpy( addr + sizeof(struct timeval), samplesRecorded, NUM_CHANNELS * sizeof(SAMPLE)* amountOfFrames);
 
         printf("Wrote data to 'samp/raw.raw'.\n");
+        //fprintf(stderr,"Wrote data to 'samp/raw.raw'.\n");
 
-        sl_open(sl)
+        sl_open(sl);
 
         free( samplesRecorded );
     }
@@ -171,7 +177,7 @@ error:
 void SIGTERM_handler()
 {
 
-    sl_open(sl)
+    sl_open(sl);
     Pa_Terminate();
 
     printf("Received kill signal. Terminating...\n" );

@@ -49,7 +49,9 @@ void log_handler();
 void SIGTERM_handler(int signal_id);
 
 int main(int argc, char const *argv[])
-{	/*************************************************************************************/
+{
+	cerr << "running modulator\n";
+	/*************************************************************************************/
 	// Main loop variables:
 	bool isMod = strtol(argv[1], NULL, 10) == 1;
 
@@ -78,7 +80,7 @@ int main(int argc, char const *argv[])
 
 	/*************************************************************************************/
 	// Shared memory and spinlock initialisation:
-
+	
 	fdIn = shm_open("/raw", O_CREAT | O_RDWR, 0666);
 	ftruncate(fdIn, 2048);
 	addrIn = (char*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fdIn, 0);
@@ -95,6 +97,8 @@ int main(int argc, char const *argv[])
 	ftruncate(fd_samp_mod, 1);
 	samp_mod_sl = (char*)mmap(0, 1, PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
 
+	sl_open(samp_mod_sl);
+	sl_open(samp_raw_sl);
 	/*************************************************************************************/
 	// Log file initialisation:
 	fstream log_file;
@@ -209,6 +213,7 @@ void FFT(float* buffer, long int frame_size, long int direction)
 
 void processSamples(long int semitones, long int numSamples, long int frame_size, long int osamp, float sampleRate, short int *indata, short int *outdata)
 {
+	cout << "modulating\n";
 	if(!numSamples)
 		return;
 	static float inputFIFO[MAX_FRAME_LENGTH];
@@ -355,13 +360,17 @@ void processSamples(long int semitones, long int numSamples, long int frame_size
 
 void sl_try(char* sl)
 {
-	while(*sl);
-	*sl = 1;
+    cerr << "trying sl ="<< (int)*sl <<" \n";
+    while(*sl);
+    memset(sl, 1,  sizeof(char));
+    cerr << "locked sl ="<< (int)*sl <<" \n";
 }
 
 void sl_open(char* sl)
 {
-	*sl = 0;
+    cerr << "opening sl ="<< (int)*sl <<" \n";
+    memset(sl, 0,  sizeof(char));
+    cerr << "opened sl ="<< (int)*sl <<" \n";
 }
 
 
@@ -425,14 +434,9 @@ void SIGTERM_handler(int signal_id)
 
 	sem_close(log2_semaphore);
 
+	sl_open(samp_mod_sl);
 
-	if(*samp_mod_sl)
-		sl_open(samp_mod_sl);
-
-
-
-	if(*samp_raw_sl)
-		sl_open(samp_raw_sl);
+	sl_open(samp_raw_sl);
 
 
 	
