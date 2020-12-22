@@ -21,7 +21,7 @@ samp:
 	mkdir samp
 
 capture: src/capture.c
-	$(C) -Wall src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
+	#$(C) -Wall src/capture.c $(inc) -o $(ODIR)/capture $(CFLAGS) $(lib)
 
 playback: src/playback.c
 	$(C) -Wall src/playback.c $(inc) -o $(ODIR)/playback $(CFLAGS) $(lib)
