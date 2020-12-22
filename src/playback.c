@@ -36,7 +36,7 @@ void SIGTERM_handler();
 int main(void)
 {
 
-    PaStreamParameters inputParam, outputParam;
+    PaStreamParameters outputParam;
     PaStream *audioStream;
     PaError exception;
     SAMPLE *samplesRecorded;
@@ -62,8 +62,6 @@ int main(void)
     fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, 2048);
     addr = mmap(NULL, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-    char t = *addr;
 
     int i;
     float amountOfFrames;

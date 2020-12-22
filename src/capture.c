@@ -32,7 +32,7 @@ void SIGTERM_handler();
 
 int main(void)
 {
-    PaStreamParameters inputParam, outputParam;
+    PaStreamParameters inputParam;
     PaStream *audioStream;
     PaError exception;
     SAMPLE *samplesRecorded;
