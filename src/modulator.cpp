@@ -23,7 +23,7 @@
 #define MAX_FRAME_LENGTH (1024)
 
 #define FRAME_MS (20)
-#define OVERLAP_MS (1)
+#define OVERLAP_MS (10)
 
 #define NUM_MILISECONDS (20)
 
@@ -97,8 +97,6 @@ int main(int argc, char const *argv[])
 	ftruncate(fd_samp_mod, sizeof(pthread_spinlock_t));
 	samp_mod_sl = (pthread_spinlock_t*)mmap(0, sizeof(pthread_spinlock_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_samp_mod, 0);
 
-	sl_open(samp_mod_sl);
-	sl_open(samp_raw_sl);
 	/*************************************************************************************/
 	// Log file initialisation:
 	fstream log_file;
