@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include "portaudio.h"
+#include <sys/time.h>
 
 #define SAMPLE_RATE  (20000)
 #define FRAMES_PER_BUFFER (1024)
@@ -43,6 +44,9 @@ int main(void)
     memset(&action2, 0, sizeof(struct sigaction));
     action2.sa_handler = SIGTERM_handler;
     sigaction(SIGINT, &action2, NULL);
+
+    fid = fopen("logs/log3.txt", "w");
+    fclose(fid);
 
     sem_id = sem_open(semName, O_CREAT | O_RDWR, 0755, 1);
     log3_semaphore = sem_open("/log3", O_CREAT, O_RDWR, 1);
