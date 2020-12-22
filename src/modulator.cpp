@@ -33,7 +33,7 @@ sem_t* log1_semaphore;
 sem_t* log2_semaphore;
 
 
-char* addrIn, addrOut, samp_raw_sl, samp_mod_sl;
+char *addrIn, *addrOut, *samp_raw_sl, *samp_mod_sl;
 int fdIn, fdOut, fd_samp_raw, fd_samp_mod;
 
 queue<unsigned int> log1_time_diff;
@@ -118,7 +118,7 @@ int main(int argc, char const *argv[])
 		memcpy(&checkIn, addrIn, sizeof(long));
 		memcpy(inSampleBuffer, addrIn + sizeof(struct timeval), inSamples * sizeof(short int));
 		if(!checkIn){
-			sem_post(samp_raw_semaphore);
+			sl_open(samp_raw_sl);
 			continue;
 		}
 
